@@ -1,0 +1,195 @@
+```{python}
+
+df = pd.read_csv('co2.csv', index_col='Make')
+
+```
+
+```{python}
+# | code-summary: Summary of the dataset and counting null values.
+#| code-fold: True
+print(df.info())
+print(df.isnull().sum())
+```
+
+Column Make can be chosen as an index. There are 12 columns(including index column) and 7385 rows. 
+
+Numerical variables are Cylinders, Engine Size(L), Fuel Consumption City/Hwy/Comb/Comb(mpg) and CO2 emissions. 
+
+Categorical values are Make, Model, Vehicle Class, Transmission, Fuel Type. 
+
+There are no N/A values in the dataset. 
+
+
+## 3.2 Correlations
+::: {.callout-note icon=false appearance="simple"} 
+Investigate the correlation matrix between `CO2 Emissions(g/km)` and the other (numerical) variables. Do *not* show the whole correlation matrix, just the column corresponding to `CO2 Emissions(g/km)`. Provide some informative comments.
+:::
+
+```{python}
+# | code-summary: Correlation matrix. 
+#| code-fold: True
+correlation_matrix = df.select_dtypes(include='number').corr()
+co2_correlation = correlation_matrix["CO2 Emissions(g/km)"]
+co2_correlation
+```
+All of the numerical variables except for 'Fuel Consumption Comb(mpg)' have strong correlation with CO2 emissions. 
+
+The weak correlation between fuel consumption (mpg) and CO2 emissions (g/km) could be due to differences in units, as mpg is inversely proportional and measured in imperial units, while CO2 emissions are directly proportional and measured in metric units. 
+
+## 3.3 Bar graphs
+::: {.callout-note icon=false appearance="simple"} 
+Make some informative plots (e.g., bar graphs) relating the target variable to the relevant non-numeric features of `CO2`. Make the plots readable, and be sure to comment each plot.
+:::
+
+This plot shows fuel types and how much they contribute to CO2 emissions. Overall, numbers are pretty high. However, Fuel Type E and Z make up the highest CO2 emissions. 
+```{python}
+# | code-summary: Fuel Type vs. Emissions
+#| code-fold: True
+plt.figure(figsize=(10, 6))
+sns.barplot(x='Fuel Type', y='CO2 Emissions(g/km)', data=df, palette='coolwarm')
+plt.title("CO2 Emissions by Fuel Type")
+plt.xlabel("Fuel Type")
+plt.ylabel("CO2 Emissions (g/km)")
+plt.show()
+```
+
+This bar plot shows CO2 emissions emitted per each vehicle class. As seen from the graph, number 1 contributor is Van - Passenger and the least harmful vehicle class type is Station Wagon - small.
+```{python}
+# | code-summary: Vehicle Class vs. Emissions.
+#| code-fold: True
+plt.figure(figsize=(10, 6))
+sns.barplot(x='CO2 Emissions(g/km)', y='Vehicle Class', data=df, palette='muted')
+plt.title("CO2 Emissions by Vehicle Class")
+plt.ylabel("Vehicle Class")
+plt.xlabel("CO2 Emissions (g/km)")
+plt.tight_layout()
+plt.show()
+```
+
+This bar plot shows relationship between Transmission and CO2 emissions. Given transmission types determine how the engine power is delivered to the wheels. In this case, AV10 and AV7 are the most CO2 emittors. 
+```{python}
+# | code-summary: Transmission vs. Emissions
+#| code-fold: True
+plt.figure(figsize=(10, 6))
+sns.barplot(x='Transmission', y='CO2 Emissions(g/km)', data=df, palette='muted')
+plt.title("CO2 Emissions by Transmission")
+plt.xlabel("Transmission")
+plt.ylabel("CO2 Emissions (g/km)")
+plt.tight_layout()
+plt.show()
+```
+
+
+## 3.4 More correlations
+::: {.callout-note icon=false appearance="simple"} 
+Investigate the whole correlation matrix, but don't report it. Are there any interesting correlations between the features worth noting? 
+
+Inspect a pair plot to check for linearity. Report 1 - 4 graphs illustrating your most important findings.
+:::
+
+```{python}
+
+#|echo : False
+df.corr(numeric_only=True).style.background_gradient(
+    cmap="coolwarm", axis=None, vmin=-1, vmax=1
+).format(precision=1)
+```
+
+```{python}
+correlation_matrix = df.select_dtypes(include='number').corr()
+correlation_matrix
+```
+Well, there a few things worth noting about the whole correlation matrix. 
+1. Fuel Consumptions measured in (L/100 km) have strong correlation with each other. 
+2. Fuel Consumption Comb(mpg) is the only variable that is least correlated with other features. That could be because of difference in units for sure. 
+3. Overall, correlation coefficients are above 
+0.7 which shows strong connection. 
+
+```{python}
+# | code-summary: Fuel Consumption(mpg) vs. Emissions
+# | code-fold: true
+sns.pairplot(df[["CO2 Emissions(g/km)", "Fuel Consumption Comb (mpg)"]])
+```
+
+```{python}
+# | code-summary: Fuel Consumptions in (L/100 km) vs. Fuel Consumption(mpg) 
+# | code-fold: true
+sns.pairplot(df[[ "Fuel Consumption City (L/100 km)", "Fuel Consumption Hwy (L/100 km)", "Fuel Consumption Comb (L/100 km)", "Fuel Consumption Comb (mpg)"]])
+```
+
+
+## 3.5 Linear regression
+::: {.callout-note icon=false appearance="simple"} 
+Using your insights from the previous exercise, fit a linear regression model. You should aim for an adjusted $R^2$ above `.99`.
+:::
+
+```{python}
+# | echo: false
+categorical_cols = ['Model', 'Vehicle Class', 'Transmission', 'Fuel Type']
+```
+
+```{python}
+# | echo: false
+df.rename(columns={'Engine Size(L)': 'engine_size',
+'Fuel Consumption City (L/100 km)': 'fuel_consumption_city',
+'Fuel Consumption Hwy (L/100 km)':'fuel_consumption_hwy',
+'Fuel Consumption Comb (L/100 km)': 'fuel_consumption_comb_l',
+'Fuel Consumption Comb (mpg)': 'fuel_consumption_comb_mpg',
+'CO2 Emissions(g/km)': 'co2_emissions'}, inplace=True)
+```
+
+```{python}
+df.info()
+```
+```{python}
+#| echo: False
+covariates = df.columns.drop(categorical_cols+['co2_emissions'])
+fits = {cov: smf.ols("co2_emissions ~ " + cov, data = df).fit() for cov in covariates}
+```
+
+```{python}
+intercept = [value.pvalues["Intercept"] for value in fits.values()]
+slope = [value.pvalues[key] for key, value in fits.items()]
+rsq_adj = [value.rsquared_adj for value in fits.values()]
+frame = pd.DataFrame({"Intercept": intercept, "Slope": slope, "Rsq_adj": rsq_adj})
+frame.index = fits.keys()
+frame.style.format(precision=4)
+```
+
+## 3.6 *p*-values
+::: {.callout-note icon=false appearance="simple"} 
+1. Provide the parameter estimates and *p*-values of your chosen model in a data frame. 
+2. Roughly explain what the *p*-values are and what they can be used for.
+3. Discuss the *p*-values in the table. How could you, potentially, use them to improve your model? (Only explain, you don't need to fit another model.)
+:::
+
+```{python}
+formula = 'co2_emissions ~ ' + ' + '.join(covariates)
+
+# Fit the model using the formula
+model = smf.ols(formula, data=df).fit()
+
+# Get the model parameters and p-values
+params = model.params
+pvalues = model.pvalues
+
+# Create a DataFrame with the parameter estimates and p-values
+results_df = pd.DataFrame({
+    'Parameter Estimate': params,
+    'P-value': pvalues,
+    
+})
+
+# Display the results
+print(results_df)
+```
+
+## 3.7 Another model
+::: {.callout-note icon=false appearance="simple"} 
+Suppose you only had the features `Fuel Type` and `Fuel Consumption Comb (mpg)` available. Fit an excellent model to this data.
+:::
+
+
+
+
+
