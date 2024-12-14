@@ -122,12 +122,6 @@ sns.pairplot(df[[ "Fuel Consumption City (L/100 km)", "Fuel Consumption Hwy (L/1
 ::: {.callout-note icon=false appearance="simple"} 
 Using your insights from the previous exercise, fit a linear regression model. You should aim for an adjusted $R^2$ above `.99`.
 :::
-
-```{python}
-# | echo: false
-categorical_cols = ['Model', 'Vehicle Class', 'Transmission', 'Fuel Type']
-```
-
 ```{python}
 # | echo: false
 df.rename(columns={'Engine Size(L)': 'engine_size',
@@ -135,26 +129,22 @@ df.rename(columns={'Engine Size(L)': 'engine_size',
 'Fuel Consumption Hwy (L/100 km)':'fuel_consumption_hwy',
 'Fuel Consumption Comb (L/100 km)': 'fuel_consumption_comb_l',
 'Fuel Consumption Comb (mpg)': 'fuel_consumption_comb_mpg',
-'CO2 Emissions(g/km)': 'co2_emissions'}, inplace=True)
+'CO2 Emissions(g/km)': 'co2_emissions',
+'Fuel Type': 'fuel_type'}, inplace=True)
 ```
+```{python}
+import statsmodels.formula.api as smf
+model = smf.ols("co2_emissions ~ engine_size + fuel_consumption_comb_l", data=df).fit()
+print(model.rsquared)
+print(model.rsquared_adj)
+```
+Why are we removing Cylinders, Fuel consumption City, Highway and mpg?
 
-```{python}
-df.info()
-```
-```{python}
-#| echo: False
-covariates = df.columns.drop(categorical_cols+['co2_emissions'])
-fits = {cov: smf.ols("co2_emissions ~ " + cov, data = df).fit() for cov in covariates}
-```
-
-```{python}
-intercept = [value.pvalues["Intercept"] for value in fits.values()]
-slope = [value.pvalues[key] for key, value in fits.items()]
-rsq_adj = [value.rsquared_adj for value in fits.values()]
-frame = pd.DataFrame({"Intercept": intercept, "Slope": slope, "Rsq_adj": rsq_adj})
-frame.index = fits.keys()
-frame.style.format(precision=4)
-```
+1. Engine Size (L) and Cylinders are highly correlated (r=0.9). Including both introduces redundancy and multicollinearity.
+2. "Fuel Consumption City," "Highway," and "Combined" are extremely correlated (r>0.9). Keeping all three would create issues because they are almost identical predictors.
+Balanced representation: "Combined (L/100 km)" is a weighted average of City and Highway fuel consumption, making it the most representative measure of a vehicle’s overall fuel consumption.
+3. Inverse Relationship: Fuel Consumption (mpg) has a strong negative correlation (r=−0.9) with all the L/100 km metrics.Choose one system (either mpg or L/100 km) to avoid confusion. Since L/100 km is already included, mpg can be dropped.
+4. Adding "Cylinders," "City," or "Highway" adds no new information
 
 ## 3.6 *p*-values
 ::: {.callout-note icon=false appearance="simple"} 
@@ -164,25 +154,22 @@ frame.style.format(precision=4)
 :::
 
 ```{python}
-formula = 'co2_emissions ~ ' + ' + '.join(covariates)
-
-# Fit the model using the formula
-model = smf.ols(formula, data=df).fit()
-
-# Get the model parameters and p-values
-params = model.params
-pvalues = model.pvalues
-
-# Create a DataFrame with the parameter estimates and p-values
-results_df = pd.DataFrame({
-    'Parameter Estimate': params,
-    'P-value': pvalues,
-    
-})
-
-# Display the results
-print(results_df)
+pd.DataFrame({"Coefficient": model.params, "p-value": model.pvalues})
 ```
+
+```{python}
+
+import statsmodels.formula.api as smf
+model1 = smf.ols("co2_emissions ~ engine_size + fuel_consumption_comb_l + fuel_consumption_city + fuel_consumption_hwy ", data=df).fit()
+print(model.rsquared)
+print(model.rsquared_adj)
+```
+
+```{python}
+pd.DataFrame({"Coefficient": model1.params, "p-value": model1.pvalues})
+```
+
+In the second model, that is when everything was included, we see that pvalues are large. That means those variables are insignifant. When we include insignifact features, it creates redundancy and increase adjusted r^2 only by very small increase. This tiny improvement is not worth the added complexity, especially since the new variables are not significant (high p-values).
 
 ## 3.7 Another model
 ::: {.callout-note icon=false appearance="simple"} 
