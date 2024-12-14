@@ -1,0 +1,24 @@
+## 3.6 *p*-values
+::: {.callout-note icon=false appearance="simple"} 
+1. Provide the parameter estimates and *p*-values of your chosen model in a data frame. 
+2. Roughly explain what the *p*-values are and what they can be used for.
+3. Discuss the *p*-values in the table. How could you, potentially, use them to improve your model? (Only explain, you don't need to fit another model.)
+:::
+
+```{python}
+pd.DataFrame({"Coefficient": model.params, "p-value": model.pvalues})
+```
+
+```{python}
+
+import statsmodels.formula.api as smf
+model1 = smf.ols("co2_emissions ~ engine_size + fuel_consumption_comb_l + fuel_consumption_city + fuel_consumption_hwy ", data=df).fit()
+print(model1.rsquared)
+print(model1.rsquared_adj)
+```
+
+```{python}
+pd.DataFrame({"Coefficient": model1.params, "p-value": model1.pvalues})
+```
+
+In the second model, that is when everything was included, we see that pvalues are large. That means those variables are insignifant. When we include insignifact features, it creates redundancy and increase adjusted r^2 only by very small increase. This tiny improvement is not worth the added complexity, especially since the new variables are not significant (high p-values).
