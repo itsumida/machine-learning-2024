@@ -1,0 +1,34 @@
+# 2 Classification of air quality
+
+## Declarations
+- [ ] I have gone through the CHECKLIST.qmd before submitting this exercise.
+
+Check the following if true:
+
+- [ ] I have used generative AI to create answers in this exercise.
+- [ ] I have used generative AI as a sparring partner (or used tools such as Github Copilot).
+
+## Prelude
+
+The data set `pollution.csv` contains the following variables.
+
+| Variable | Description |
+| -------- | ----------- | 
+| Temperature (°C)                    | Average temperature of the region. |
+| Humidity (%)                        | Relative humidity recorded in the region. |
+| PM2.5 Concentration (µg/m³)         | Fine particulate matter levels. |
+| PM10 Concentration (µg/m³)          | Coarse particulate matter levels. |
+| NO2 Concentration (ppb)             | Nitrogen dioxide levels. |
+| SO2 Concentration (ppb)             | Sulfur dioxide levels. |
+| CO Concentration (ppm)              | Carbon monoxide levels. |
+| Proximity to Industrial Areas (km)  | Distance to the nearest industrial zone. |
+| Population Density (people/km²)     | Number of people per square kilometer in the region. |
+| Air Quality Levels                  | Quantification of air quality **Target**. |
+
+```{python}
+# | echo: False
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+```
