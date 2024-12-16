@@ -32,3 +32,99 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 ```
+## 2.1 Import and investigate
+::: {.callout-note icon=false appearance="simple"} 
+## 
+1. Import the data set `pollution.csv`. 
+2. Remove every row containing missing values.
+3. Make a feature matrix `X` and target vector `y`.
+
+```{python}
+import pandas as pd
+
+data = pd.read_csv('pollution.csv')
+
+data_cleaned = data.dropna()
+
+X = data_cleaned.drop(columns=['Air Quality'])
+y = data_cleaned['Air Quality']
+
+print("Feature Matrix (X):")
+print(X.head())
+
+print("\nTarget Vector (y):")
+print(y.head())
+
+```
+## 2.2 Inspect 
+::: {.callout-note icon=false appearance="simple"} 
+## 
+1. Inspect the categories in the target using a suitable plotting device. 
+   Is the target the imbalanced?  (I.e., the majority classes are far more prevalent than minority classes)
+2. Inspect the pairplot. Display and explain any intersting patterns. 
+:::
+
+```{python}
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+file_path = 'pollution.csv'  
+data = pd.read_csv(file_path)
+
+data_cleaned = data.dropna()
+target_counts = data_cleaned['Air Quality'].value_counts()
+
+plt.figure(figsize=(8, 5))
+sns.barplot(x=target_counts.index, y=target_counts.values, palette="viridis")
+plt.title("Air Quality Category Distribution")
+plt.xlabel("Air Quality Category")
+plt.ylabel("Frequency")
+plt.show()
+
+print("Distribution of Air Quality Categories:")
+print(target_counts)
+print("\nClass Imbalance Ratio (Max/Min):", target_counts.max() / target_counts.min())
+
+sns.pairplot(data_cleaned, hue='Air Quality', diag_kind='kde', corner=True, palette="coolwarm")
+plt.suptitle("Pairplot of Features by Air Quality", y=1.02)
+plt.show()
+
+```
+
+## 2.3 Logistic regression
+::: {.callout-note icon=false appearance="simple"} 
+## 
+Remove the column `PP10` from the `pollution` dataset (and `X` and `y`). We will work with this modified data set in the remainder of the exercise.
+
+Using cross-validation, evaluate the fit of an non-penalized logistic regression on the whole data set using (a) the negative log loss, (b) accuracy. 
+
+What are the benefits and downsides of using the log loss vs. the accuracy?
+
+(*Hint*: Use the argument `scoring = "neg_log_loss"`. Use the argument `warning: False` to suppress warnings in the output of a code block.)
+
+```{python}
+import pandas as pd
+
+file_path = 'pollution.csv'  
+data = pd.read_csv(file_path)
+
+data_cleaned = data.dropna()
+
+
+X = data_cleaned.drop(columns=['Air Quality'])
+y = data_cleaned['Air Quality']
+
+
+print("Feature Matrix (X):")
+print(X.head())
+
+print("\nTarget Vector (y):")
+print(y.head())
+
+(snswer the benefits and downside)
+
+
+
+```
+:::
