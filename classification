@@ -153,4 +153,80 @@ Accuracy does not take prediction certainty into account. A model predicing corr
 Ranking outcomes is common – call the lead with the highest probability of buying first
 
 ```
+
+## 2.4 Quadratic logistic regression
+::: {.callout-note icon=false appearance="simple"} 
+## 
+It's natural to check for "simple" non-linearity by running quadratic logistic regressions.
+
+1. Run a quadratic logistic regression and report its cross-validated log loss and accuracy. You have to use pipelines here.
+2. Then run a quadratic logistic regression model using only interaction terms. 
+
+Place the accuracy and log scores for these two models, and the model you made in the previous exercise, in a nicely formatted table. Which model performs best? What is happening here?
+
+
+
+``
+:::
+
+```{python}
+
+import pandas as pd
+from sklearn.model_selection import cross_validate
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import PolynomialFeatures
+
+file_path = 'pollution.csv'  
+data = pd.read_csv(file_path)
+data_cleaned = data.dropna()
+
+X = data_cleaned.drop(columns=['Air Quality', 'PM10'])
+y = data_cleaned['Air Quality']
+
+print("Feature Matrix (X):")
+print(X.head())
+
+print("\nTarget Vector (y):")
+print(y.head())
+
+baseline_pipeline = Pipeline([
+    ('scaler', StandardScaler()),
+    ('logistic', LogisticRegression(penalty=None, max_iter=1000))  
+])
+
+full_quadratic_pipeline = Pipeline([
+    ('scaler', StandardScaler()),
+    ('poly', PolynomialFeatures(degree=2, include_bias=False)),
+    ('logistic', LogisticRegression(penalty=None, max_iter=1000))
+])
+
+
+interaction_only_pipeline = Pipeline([
+    ('scaler', StandardScaler()),
+    ('poly', PolynomialFeatures(degree=2, include_bias=False, interaction_only=True)),
+    ('logistic', LogisticRegression(penalty=None, max_iter=1000))
+])
+
+
+scoring_metrics = ['neg_log_loss', 'accuracy']
+
+baseline_cv_results = cross_validate(baseline_pipeline, X, y, cv=5, scoring=scoring_metrics)
+full_quadratic_cv_results = cross_validate(full_quadratic_pipeline, X, y, cv=5, scoring=scoring_metrics)
+interaction_only_cv_results = cross_validate(interaction_only_pipeline, X, y, cv=5, scoring=scoring_metrics)
+
+
+print("\nBaseline Pipeline CV Results:")
+print("Negative Log Loss (Mean):", -baseline_cv_results['test_neg_log_loss'].mean())
+print("Accuracy (Mean):", baseline_cv_results['test_accuracy'].mean())
+
+print("\nFull Quadratic Pipeline CV Results:")
+print("Negative Log Loss (Mean):", -full_quadratic_cv_results['test_neg_log_loss'].mean())
+print("Accuracy (Mean):", full_quadratic_cv_results['test_accuracy'].mean())
+
+print("\nInteraction-Only Pipeline CV Results:")
+print("Negative Log Loss (Mean):", -interaction_only_cv_results['test_neg_log_loss'].mean())
+print("Accuracy (Mean):", interaction_only_cv_results['test_accuracy'].mean())
+
 :::
