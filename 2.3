@@ -1,0 +1,126 @@
+## 2.3 Logistic regression
+::: {.callout-note icon=false appearance="simple"} 
+## 
+Remove the column `PP10` from the `pollution` dataset (and `X` and `y`). We will work with this modified data set in the remainder of the exercise.
+
+Using cross-validation, evaluate the fit of an non-penalized logistic regression on the whole data set using (a) the negative log loss, (b) accuracy. 
+
+What are the benefits and downsides of using the log loss vs. the accuracy?
+
+(*Hint*: Use the argument `scoring = "neg_log_loss"`. Use the argument `warning: False` to suppress warnings in the output of a code block.)
+:::
+
+```{python}
+pollution_df = pollution_df.drop(columns=['PM10'])
+
+X = pollution_df.drop(columns=['Air Quality'], axis=1)
+y = pollution_df['Air Quality']
+
+print(X.head())
+```
+
+```{python}
+print(y.head())
+```
+
+```{python}
+from sklearn.model_selection import cross_val_score
+from sklearn.linear_model import LogisticRegression
+from sklearn.datasets import make_classification 
+import warnings
+warnings.filterwarnings('ignore')
+```
+
+```{python}
+from sklearn.model_selection import train_test_split, cross_val_score
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.3, random_state=42
+)
+model = LogisticRegression(penalty=None)
+model.fit(X_train,y_train)
+```
+
+(a) the negative log loss
+```{python}
+from sklearn.metrics import log_loss
+
+# Log loss on training data
+y_train_proba = model.predict_proba(X_train)
+train_log_loss = log_loss(y_train, y_train_proba)
+print(f"Log Loss on Training Data: {train_log_loss:.4f}")
+
+# Cross-validation log loss
+cv_scores = cross_val_score(model, X, y, cv=5, scoring='neg_log_loss')
+cv_log_loss_scores = -cv_scores
+print("Cross-Validation Log Loss Scores for Each Fold:")
+print(cv_log_loss_scores)
+average_cv_log_loss = np.mean(cv_log_loss_scores)
+print(f"Average Cross-Validation Log Loss: {average_cv_log_loss:.4f}")
+
+# Log loss on test data
+y_test_proba = model.predict_proba(X_test)
+test_log_loss = log_loss(y_test, y_test_proba)
+print(f"Log Loss on Test Data: {test_log_loss:.4f}")
+```
+
+(b) accuracy
+```{python}
+# Accuracy on training data
+train_accuracy = model.score(X_train, y_train)
+print(f"Accuracy on Training Data: {train_accuracy:.4f}")
+
+# Cross-validation accuracy
+cv_scores = cross_val_score(model, X, y, cv=5, scoring='accuracy')
+print(f"Cross-Validation Accuracy: {cv_scores.mean():.4f}")
+
+# Accuracy on test data
+test_accuracy = model.score(X_test, y_test)
+print(f"Accuracy on Test Data: {test_accuracy:.4f}")
+```
+
+1. Log Loss (Negative Log Loss)
+Benefits:
+
+Probabilistic Interpretation: Log loss evaluates the quality of the predicted probabilities, not just the final classification. It penalizes predictions that are confident but wrong.
+Better for Imbalanced Datasets: Log loss accounts for prediction confidence, making it sensitive to class imbalances and useful when classes are imbalanced.
+Continuous Measure: Provides a continuous score, giving more nuanced feedback than a binary metric like accuracy.
+Downsides:
+
+Harder to Interpret: Log loss values are less intuitive compared to accuracy, especially for non-technical stakeholders.
+Sensitive to Outliers: Overconfident incorrect predictions heavily penalize the log loss.
+2. Accuracy
+Benefits:
+
+Easy to Interpret: Accuracy is simple to understand as a percentage of correct predictions.
+Useful for Balanced Datasets: Works well when all classes have roughly equal representation.
+Downsides:
+
+Ignores Prediction Confidence: Accuracy only considers whether the prediction is correct or not, disregarding the confidence of the prediction.
+Misleading for Imbalanced Datasets: In datasets with class imbalance, accuracy can be misleading (e.g., a model predicting the majority class 100% of the time can still achieve high accuracy).
+
+
+## 2.4 Quadratic logistic regression
+::: {.callout-note icon=false appearance="simple"} 
+## 
+It's natural to check for "simple" non-linearity by running quadratic logistic regressions.
+
+1. Run a quadratic logistic regression and report its cross-validated log loss and accuracy. You have to use pipelines here.
+2. Then run a quadratic logistic regression model using only interaction terms. 
+
+Place the accuracy and log scores for these two models, and the model you made in the previous exercise, in a nicely formatted table. Which model performs best? What is happening here?
+:::
+
+
+
+## 2.5 Boosting
+::: {.callout-note icon=false appearance="simple"} 
+## 
+Run a boosting classifier on the data. Estimate its, performance of the classifier, and make an importance plot. Explain what you see. 
+:::
+
+## 2.6 Other models
+::: {.callout-note icon=false appearance="simple"} 
+## 
+Discuss other potential models for this data set. Do you find it likely that any of them would perform better than logistic regression?
+:::
