@@ -71,6 +71,8 @@ The columns cannot be an index as none of the columns include values that are un
 
 Moreover, the columns such as cylinder, transmission, fuel type etc.. also cannot be included as an index column. 
 
+If we were to create an index, it would preferrable to have a default integer index as when filtering or performing row-specific operations this would be more useful. 
+
 ```{python}
 #check number of unique values
 def get_unique_values(df):
