@@ -1,0 +1,75 @@
+
+## 3.4 More correlations
+::: {.callout-note icon=false appearance="simple"} 
+Investigate the whole correlation matrix, but don't report it. Are there any interesting correlations between the features worth noting? 
+
+Inspect a pair plot to check for linearity. Report 1 - 4 graphs illustrating your most important findings.
+:::
+```{python}
+#|echo : False
+df.corr(numeric_only=True).style.background_gradient(
+    cmap="coolwarm", axis=None, vmin=-1, vmax=1
+).format(precision=1)
+```
+
+```{python}
+correlation_matrix = df.select_dtypes(include='number').corr()
+correlation_matrix
+```
+Well, there a few things worth noting about the whole correlation matrix. 
+1. Fuel Consumptions measured in (L/100 km) have strong correlation with each other. 
+2. Fuel Consumption Comb(mpg) is the only variable that is least correlated with other features. That could be because of difference in units for sure. 
+3. Overall, correlation coefficients are above 
+0.7 which shows strong connection. 
+
+```{python}
+# | code-summary: Fuel Consumption(mpg) vs. Emissions
+# | code-fold: true
+sns.pairplot(df[["CO2 Emissions(g/km)", "Fuel Consumption Comb (mpg)"]])
+```
+
+The plot above displays a clear negative relationship between Fuel Consumption Comb (mpg) and CO2 Emissions; a higher mpg (combined fuel consumption) would mean an improved fuel efficiency and lead to lower emissions. 
+
+There are some outliers, particularly in vehicles with higher emissions but relatively low mpg. These outliers can be due to the presence of  larger and/or less efficient vehicle models. 
+
+There are no obvious clusters in the plot, which suggest a linear relationship beting present without the presence of distinct groups within the data. 
+
+```{python}
+# | code-summary: Fuel Consumptions in (L/100 km) vs. Fuel Consumption(mpg) 
+# | code-fold: true
+sns.pairplot(df[[ "Fuel Consumption City (L/100 km)", "Fuel Consumption Hwy (L/100 km)", "Fuel Consumption Comb (L/100 km)", "Fuel Consumption Comb (mpg)"]])
+```
+
+This plot above displays a strong negative correlation between Fuel Consumption (L/100 km) and Fuel Consumption Comb (mpg), which shows the inverse relationship that is formed because of the difference in units, where mpg measures the efficiency in imperial units whereas km is the metric equivalent. 
+
+There are no significant outliers that are visible, however, some vehicles have extreme values, which can be explained due to the presence of larger vehicles in the dataset with higher consumption. 
+
+A slight seperation between Fuel Consumption City (L/100 km) and and Fuel Consumption Hwy (L/100 km) is present, suggesting that city consumption is usually higher and less fuel-efficient. 
+
+```{python}
+# | code-summary: Engine Size vs. CO₂ Emissions
+# | code-fold: true
+sns.pairplot(df[["Engine Size(L)", "CO2 Emissions(g/km)"]])
+```
+
+The plot above shows a positive relationship between Engine Size and CO2 Emissions; larger engine sezes tend to produce higher emissions due to the increased fuel consumption required. 
+
+There are some outliers present with larger engines (e.g. above 7), that could be due to other factors such as the engine or fuel type suggesting that engine size alone does not always perfectly correlate with emissions. 
+
+There is no strong clustering of points, but a pattern shows that larger engine sizes tend to cluster around higher CO2 Emissions. 
+
+```{python}
+# | code-summary: All Fuel Consumption Metrics vs. CO₂ Emissions
+# | code-fold: true
+sns.pairplot(df[["Fuel Consumption City (L/100 km)", 
+                 "Fuel Consumption Hwy (L/100 km)", 
+                 "Fuel Consumption Comb (L/100 km)", 
+                 "Fuel Consumption Comb (mpg)", 
+                 "CO2 Emissions(g/km)"]])
+```
+
+The plot above shows a positive correlation between Fuel consumption (city, highway and combined) in metrics and CO2 Emissions; a higher fuel consumption leads to higher emissions. The mpg variable, however, has a negative relationship with CO2 emissions; a higher mpg (implying improved fuel efficiency) leads to lower emissions.
+
+Outliers are more visible for Fuel Consumption (L/100 km), particularly where vehicles have high fuel consumption but relatively low emissions. This may indicate inefficiencies such as larger engines, non-optimal driving conditions, or less efficient vehicle types.
+
+There are small clusters where fuel consumption values for City and Combined are highly correlated, showing that city driving tends to be more inefficient than highway driving (more constant speeds). mpg and L/100 km metrics are generally inversely clustered.
