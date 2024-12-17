@@ -1,0 +1,406 @@
+# 2 Classification of air quality
+
+## Declarations
+- [ ] I have gone through the CHECKLIST.qmd before submitting this exercise.
+
+Check the following if true:
+
+- [ ] I have used generative AI to create answers in this exercise.
+- [ ] I have used generative AI as a sparring partner (or used tools such as Github Copilot).
+
+## Prelude
+
+The data set `pollution.csv` contains the following variables.
+
+| Variable | Description |
+| -------- | ----------- | 
+| Temperature (°C)                    | Average temperature of the region. |
+| Humidity (%)                        | Relative humidity recorded in the region. |
+| PM2.5 Concentration (µg/m³)         | Fine particulate matter levels. |
+| PM10 Concentration (µg/m³)          | Coarse particulate matter levels. |
+| NO2 Concentration (ppb)             | Nitrogen dioxide levels. |
+| SO2 Concentration (ppb)             | Sulfur dioxide levels. |
+| CO Concentration (ppm)              | Carbon monoxide levels. |
+| Proximity to Industrial Areas (km)  | Distance to the nearest industrial zone. |
+| Population Density (people/km²)     | Number of people per square kilometer in the region. |
+| Air Quality Levels                  | Quantification of air quality **Target**. |
+
+```{python}
+# | echo: False
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+import statsmodels.formula.api as smf
+
+from sklearn.model_selection import cross_validate
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import PolynomialFeatures
+
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.model_selection import train_test_split, cross_validate
+from sklearn.metrics import accuracy_score, log_loss
+```
+
+## 2.1 Import and investigate
+::: {.callout-note icon=false appearance="simple"} 
+## 
+1. Import the data set `pollution.csv`. 
+2. Remove every row containing missing values.
+3. Make a feature matrix `X` and target vector `y`.
+:::
+
+Importing the data set `pollution.csv`:
+```{python}
+# | code-fold: true
+pollution = pd.read_csv("pollution.csv")
+pollution_df = pollution.copy()
+pollution_df.head()
+```
+
+Removing every row containing missing values: 
+```{python}
+pollution_df = pollution_df.dropna()
+```
+
+Making a feature matrix 'X' and target vector 'y':
+```{python}
+X = pollution_df.drop(columns=['Air Quality'])
+y = pollution_df['Air Quality']
+```
+
+```{python}
+# | code-summary: Feature Matrix (X)
+# | code-fold: true
+print(X.head())
+```
+
+```{python}
+# | code-summary: Target Vector (y)
+# | code-fold: true
+print(y.head())
+```
+
+## 2.2 Inspect 
+::: {.callout-note icon=false appearance="simple"} 
+## 
+1. Inspect the categories in the target using a suitable plotting device. 
+   Is the target the imbalanced?  (I.e., the majority classes are far more prevalent than minority classes)
+2. Inspect the pairplot. Display and explain any interesting patterns. 
+:::
+
+Inspecting the categories in the target using a suitable plotting device: 
+```{python}
+# | code-summary: Air Quality Categories Distribution
+# | code-fold: True
+plt.figure(figsize=(10, 6))
+sns.barplot(x=y.value_counts().index, y=y.value_counts().values, palette='muted')
+plt.title("Distribution of Air Quality Categories")
+plt.xlabel("Air Quality Categories")
+plt.ylabel("Count")
+plt.tight_layout()
+plt.show()
+```
+
+```{python}
+# | code-summary: Count of each class within target variable 
+# | code-fold: True
+class_counts = y.value_counts()
+print(class_counts)
+```
+
+As seen from the barplot, the target is indeed imbalanced and the difference between the majority class (Good Air Quality) had a value count that is 1500 higher than the minority class (Hazardous Air Quality). 
+
+Inspecting the pairplot:
+```{python}
+# | code-fold: True
+sns.pairplot(pollution_df, hue='Air Quality', diag_kind='kde', corner=True, palette="coolwarm")
+plt.suptitle("Pairplot of Features by Air Quality", y=1.02)
+plt.show()
+```
+
+
+```{python}
+#|echo : False
+pollution_df.corr(numeric_only=True).style.background_gradient(
+    cmap="coolwarm", axis=None, vmin=-1, vmax=1
+).format(precision=1)
+```
+
+```{python}
+correlation_matrix = pollution_df.select_dtypes(include='number').corr()
+correlation_matrix
+```
+
+From the correlation matrix, either PM 2.5 or PM 2.10 should be included as they are highly correlated, and including both in a pairplot would be redundant. 
+
+```{python}
+# | code-summary: Temperature(°C) vs. Air Quality Levels
+# | code-fold: true
+sns.pairplot(pollution_df[["Temperature", "Air Quality"]], hue="Air Quality")
+plt.show()
+```
+
+```{python}
+# | code-summary: Humidity(%) vs. Air Quality Levels
+# | code-fold: true
+sns.pairplot(pollution_df[["Humidity", "Air Quality"]], hue="Air Quality")
+plt.show()
+```
+
+```{python}
+# | code-summary: PM2.5 Concentration (µg/m³) vs. Air Quality Levels 
+# | code-fold: true
+sns.pairplot(pollution_df[["PM2.5", "Air Quality"]], hue="Air Quality")
+plt.show()
+```
+
+```{python}
+# | code-summary: NO2 Concentration (ppb) vs. Air Quality Levels 
+# | code-fold: true
+sns.pairplot(pollution_df[["NO2", "Air Quality"]], hue="Air Quality")
+plt.show()
+```
+
+
+```{python}
+# | code-summary: SO2 Concentration (ppb) vs. Air Quality Levels 
+# | code-fold: true
+sns.pairplot(pollution_df[["SO2", "Air Quality"]], hue="Air Quality")
+plt.show()
+```
+
+```{python}
+# | code-summary: Proximity to Industrial Areas (km) vs. Air Quality Levels 
+# | code-fold: true
+sns.pairplot(pollution_df[["Proximity_to_Industrial_Areas", "Air Quality"]], hue="Air Quality")
+plt.show()
+```
+
+```{python}
+# | code-summary: Population Density (people/km²) vs. Air Quality Levels 
+# | code-fold: true
+sns.pairplot(pollution_df[["Population_Density", "Air Quality"]], hue="Air Quality")
+plt.show()
+```
+
+## 2.3 Logistic regression
+::: {.callout-note icon=false appearance="simple"} 
+## 
+Remove the column `PP10` from the `pollution` dataset (and `X` and `y`). We will work with this modified data set in the remainder of the exercise.
+
+Using cross-validation, evaluate the fit of an non-penalized logistic regression on the whole data set using (a) the negative log loss, (b) accuracy. 
+
+What are the benefits and downsides of using the log loss vs. the accuracy?
+
+(*Hint*: Use the argument `scoring = "neg_log_loss"`. Use the argument `warning: False` to suppress warnings in the output of a code block.)
+:::
+
+```{python}
+pollution_df = pollution_df.drop(columns=['PM10'])
+
+X = pollution_df.drop(columns=['Air Quality'], axis=1)
+y = pollution_df['Air Quality']
+
+print(X.head())
+```
+
+```{python}
+print(y.head())
+```
+
+```{python}
+from sklearn.model_selection import cross_val_score
+from sklearn.linear_model import LogisticRegression
+from sklearn.datasets import make_classification 
+import warnings
+warnings.filterwarnings('ignore')
+```
+
+```{python}
+from sklearn.model_selection import train_test_split, cross_val_score
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.3, random_state=42
+)
+model = LogisticRegression(penalty=None)
+model.fit(X_train,y_train)
+```
+
+(a) the negative log loss
+```{python}
+from sklearn.metrics import log_loss
+
+# Log loss on training data
+y_train_proba = model.predict_proba(X_train)
+train_log_loss = log_loss(y_train, y_train_proba)
+print(f"Log Loss on Training Data: {train_log_loss:.4f}")
+
+# Cross-validation log loss
+cv_scores = cross_val_score(model, X, y, cv=5, scoring='neg_log_loss')
+cv_log_loss_scores = -cv_scores
+print("Cross-Validation Log Loss Scores for Each Fold:")
+print(cv_log_loss_scores)
+average_cv_log_loss = np.mean(cv_log_loss_scores)
+print(f"Average Cross-Validation Log Loss: {average_cv_log_loss:.4f}")
+
+# Log loss on test data
+y_test_proba = model.predict_proba(X_test)
+test_log_loss = log_loss(y_test, y_test_proba)
+print(f"Log Loss on Test Data: {test_log_loss:.4f}")
+```
+
+(b) accuracy
+```{python}
+# Accuracy on training data
+train_accuracy = model.score(X_train, y_train)
+print(f"Accuracy on Training Data: {train_accuracy:.4f}")
+
+# Cross-validation accuracy
+cv_scores = cross_val_score(model, X, y, cv=5, scoring='accuracy')
+print(f"Cross-Validation Accuracy: {cv_scores.mean():.4f}")
+
+# Accuracy on test data
+test_accuracy = model.score(X_test, y_test)
+print(f"Accuracy on Test Data: {test_accuracy:.4f}")
+```
+
+Log Loss (Negative Log Loss)
+Benefits:
+    1. Handles Imbalanced Data: 
+    Log loss is less affected by class imbalances compared to accuracy. Since it considers the predicted probabilities for all classes, it gives a more nuanced evaluation of model performance.
+
+    2. More Granular: 
+    It provides a more detailed assessment of the model’s performance. Even small improvements in probability calibration are reflected in log loss, which makes it useful for fine-tuning models.
+
+Downsides: 
+    1.  Harder to Interpret:
+    It is less intuitive than accuracy because it requires understanding probabilities and logarithmic penalties.
+
+    2. Overly Sensitive:  
+    Log loss penalizes confident incorrect predictions very harshly, which can sometimes be overly sensitive to for example outliers
+
+Accuracy 
+Benefits: 
+    1. Simple and Intuitive: 
+    Accuracy is easy to calculate and understand, making it a popular metric for quick evaluations.
+    2. Direct Measure of Performance: 
+    It directly reflects the percentage of predictions that the model got right, which makes it straightforward to interpret.
+
+Downsides: 
+    1. Imbalanced Data:
+    When one or more class labels are extremely common.
+    Almost always the case. Think about churn prediction. Most customers don’t churn
+    2. Prediction Certainty: 
+    Accuracy does not take prediction certainty into account. A model predicing correctly with 51% probability can get the same score as a model with 99% probability.
+    Ranking outcomes is common – call the lead with the highest probability of buying first
+
+## 2.4 Quadratic logistic regression
+::: {.callout-note icon=false appearance="simple"} 
+## 
+It's natural to check for "simple" non-linearity by running quadratic logistic regressions.
+
+1. Run a quadratic logistic regression and report its cross-validated log loss and accuracy. You have to use pipelines here.
+2. Then run a quadratic logistic regression model using only interaction terms. 
+
+Place the accuracy and log scores for these two models, and the model you made in the previous exercise, in a nicely formatted table. Which model performs best? What is happening here?
+:::
+
+```{python}
+baseline_pipeline = Pipeline([
+    ('scaler', StandardScaler()),
+    ('logistic', LogisticRegression(penalty=None, max_iter=1000))  
+])
+
+full_quadratic_pipeline = Pipeline([
+    ('scaler', StandardScaler()),
+    ('poly', PolynomialFeatures(degree=2, include_bias=False)),
+    ('logistic', LogisticRegression(penalty=None, max_iter=1000))
+])
+
+
+interaction_only_pipeline = Pipeline([
+    ('scaler', StandardScaler()),
+    ('poly', PolynomialFeatures(degree=2, include_bias=False, interaction_only=True)),
+    ('logistic', LogisticRegression(penalty=None, max_iter=1000))
+])
+
+
+scoring_metrics = ['neg_log_loss', 'accuracy']
+
+baseline_cv_results = cross_validate(baseline_pipeline, X, y, cv=5, scoring=scoring_metrics)
+full_quadratic_cv_results = cross_validate(full_quadratic_pipeline, X, y, cv=5, scoring=scoring_metrics)
+interaction_only_cv_results = cross_validate(interaction_only_pipeline, X, y, cv=5, scoring=scoring_metrics)
+
+
+print("\nBaseline Pipeline CV Results:")
+print("Negative Log Loss (Mean):", -baseline_cv_results['test_neg_log_loss'].mean())
+print("Accuracy (Mean):", baseline_cv_results['test_accuracy'].mean())
+
+print("\nFull Quadratic Pipeline CV Results:")
+print("Negative Log Loss (Mean):", -full_quadratic_cv_results['test_neg_log_loss'].mean())
+print("Accuracy (Mean):", full_quadratic_cv_results['test_accuracy'].mean())
+
+print("\nInteraction-Only Pipeline CV Results:")
+print("Negative Log Loss (Mean):", -interaction_only_cv_results['test_neg_log_loss'].mean())
+print("Accuracy (Mean):", interaction_only_cv_results['test_accuracy'].mean())
+```
+
+The model with quadratic features and the interaction-only model did not perform better than the baseline model. This suggests that adding polynomial features or interaction terms did not provide significant improvement in this case, which could be due to overfitting or the complexity not being beneficial for this dataset. The baseline model remains the most effective in predicting outcomes.
+
+## 2.5 Boosting
+::: {.callout-note icon=false appearance="simple"} 
+## 
+Run a boosting classifier on the data. Estimate its, performance of the classifier, and make an importance plot. Explain what you see. 
+:::
+```{python}
+boosting_model = GradientBoostingClassifier(random_state=42)
+boosting_model.fit(X_train, y_train)
+
+y_pred_proba = boosting_model.predict_proba(X_test)
+y_pred = boosting_model.predict(X_test)
+
+accuracy = accuracy_score(y_test, y_pred)
+logloss = log_loss(y_test, y_pred_proba)
+
+print(f"Model Accuracy: {accuracy:.2f}")
+print(f"Log Loss: {logloss:.2f}")
+
+feature_importances = boosting_model.feature_importances_
+sorted_indices = feature_importances.argsort()
+
+plt.figure(figsize=(10, 6))
+plt.barh(X.columns[sorted_indices], feature_importances[sorted_indices], color='steelblue')
+plt.xlabel("Feature Importance")
+plt.ylabel("Features")
+plt.title("Feature Importance (Gradient Boosting Classifier)")
+plt.show()
+```
+
+The Gradient Boosting Classifier achieved a low accuracy of 0.36 and a log loss of 1.32, indicating poor performance. The feature importance plot reveals which features contribute most to the model's predictions, with longer bars representing more influential features. Features with low importance are less influential in predicting air quality and could be considered for removal, while highly important features should be further analyzed to improve model performance.
+
+## 2.6 Other models
+::: {.callout-note icon=false appearance="simple"} 
+## 
+Discuss other potential models for this data set. Do you find it likely that any of them would perform better than logistic regression?
+:::
+
+1. Decision Trees & Random Forests
+Why Better: Capture non-linear relationships and feature interactions effectively; Random Forests reduce overfitting by aggregating multiple trees.
+Class Imbalance: Handle imbalance through class weighting and balanced sampling.
+Issues: Decision Trees can overfit; Random Forests can be computationally expensive and less interpretable.
+
+2. Gradient Boosting Machines (GBM) & XGBoost
+Why Better: Sequential learning captures complex patterns and corrects errors; XGBoost offers efficiency and built-in regularization.
+Class Imbalance: Manage imbalance via class weights and specialized loss functions.
+Issues: Computationally demanding and require careful hyperparameter tuning.
+
+3. K-Nearest Neighbors (KNN)
+Why Better: Non-parametric approach that captures intricate decision boundaries.
+Class Imbalance: Weighted KNN can mitigate imbalance.
+Issues: Slow for large datasets and struggles with high-dimensional data
+
+
