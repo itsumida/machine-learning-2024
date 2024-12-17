@@ -1,21 +1,59 @@
+# 3 Univariate modelling
+
+## Declarations
+- [ ] I have gone through the CHECKLIST.qmd before submitting this exercise.
+
+Check the following if true:
+
+- [ ] I have used generative AI to create answers in this exercise.
+- [ ] I have used generative AI as a sparring partner (or used tools such as Github Copilot).
+
+## Prelude
+
+The data set `positions.csv` contains the following variables.
+
+| Variable | Description |
+| -------- | ----------- | 
+| time     | Time of measurement, rescaled to $[-\pi, \pi]$. |
+| kind     | Type of intervention, `up` (1) or `down` (0).  |
+| position | $y$-position of pendulum. **Target**.          |
+
+We will analyze the data using cubic splines and regression with carefully chosen transformations.
+
+```{python}
+# | echo: False
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.preprocessing import SplineTransformer
+from sklearn.linear_model import RidgeCV
+from sklearn.pipeline import Pipeline
+from sklearn.linear_model import Ridge
+from sklearn.model_selection import cross_val_score, KFold
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import FunctionTransformer, OneHotEncoder
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import StandardScaler
+```
+
 ## 3.1 Importing and visualizing.
 ::: {.callout-note icon=false appearance="simple"} 
 ## 
 Import the data set `positions.csv`. 
 
 1. How many rows with `NA`s (missing values) are there in the data set? Remove them. (*Hint*: Use `is.na()` and the `any` method. Look them up if you need to.)
-2. The datatype of `kind` is incorrect. Fix it so that `1.0` maps to `"up"` and `0.0` maps to `"down"`.
-3. Sort the data with respect to the `time` feature. This is useful for plotting purposes.
-4. Split the data into a feature matrix `X` and target vector `y`.
-5. Plot the data (`time` on `x` axis and `position` on `y` axis) with different colors for the two kinds. Comment on the plot.
-:::
 
 ```{python}
+#| code-fold: true
+#| code-summary: Importing the dataset
 df = pd.read_csv('positions.csv', index_col=0)
 df.head()
 ```
 
 ```{python}
+#| code-fold: true
+#| code-summary: Missing values
 # Find missing values
 missing_in_rows = df.isna().any(axis=1)
 
@@ -23,62 +61,76 @@ missing_in_rows = df.isna().any(axis=1)
 num_missing_rows = missing_in_rows.sum()
 print(num_missing_rows)
 ```
-
 ```{python}
+#| code-fold: true
+#| code-summary: Dropping missing values
 df = df.dropna()
 ```
-
-Checking if all N/A values are removed:
+2. The datatype of `kind` is incorrect. Fix it so that `1.0` maps to `"up"` and `0.0` maps to `"down"`.
 ```{python}
-df.isna().any(axis=1).sum()
+#| code-fold: true
+#| code-summary: Correcting datatype of 'kind'
+df['kind'] = df['kind'].map({1.0: 'up', 0.0: 'down'})
 ```
+3. Sort the data with respect to the `time` feature. This is useful for plotting purposes.
+```{python}
+#| code-fold: true
+#| code-summary: Sorting values with respect to 'time'
+df = df.sort_values('time')
+```
+4. Split the data into a feature matrix `X` and target vector `y`.
+```{python}
+#| code-fold: true
+#| code-summary: Splitting the data
+X = df[["time"]]
+y = df["position"]
+```
+5. Plot the data (`time` on `x` axis and `position` on `y` axis) with different colors for the two kinds. Comment on the plot.
+```{python}
+# | echo: False
+sns.relplot(data=df, x="time", y="position", hue="kind", kind="scatter")
+```
+The plot shows relationship between position and time based on two kinds(up and down). Do they show linear relationship?
+:::
+
 
 
 ## 3.2 Splines
 ::: {.callout-note icon=false appearance="simple"} 
 ## 
 1. Estimate a cubic spline model on `time` with 10 uniformly spaced knots using ridge regression. 
-2. Add the estimated spline on top of the graph you made in the previous exercise.
-3. Use cross-validation to assess the fit. You **must** use [KFold](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.KFold.html) with `shuffle=True`. Explain why we need this. 
-:::
-
 ```{python}
-from sklearn.preprocessing import SplineTransformer
-from sklearn.linear_model import RidgeCV
-from sklearn.pipeline import Pipeline
-from sklearn.linear_model import Ridge
-from sklearn.model_selection import cross_val_score, KFold
-from sklearn.compose import ColumnTransformer
-```
-
-```{python}
-X = df[["time"]]
-y = df["position"]
-
+#| code-fold: true
+#| code-summary: Estimating a cubic spline model
 pipe_spline = Pipeline([
     ("spline", SplineTransformer(n_knots=10, degree=3, include_bias=False)),
     ("ridge", Ridge(alpha=1.0))
 ])  
 
 pipe_spline.fit(X, y)
+```
+2. Add the estimated spline on top of the graph you made in the previous exercise.
 
-time_dense = np.linspace(df["time"].min(), df["time"].max(), 500).reshape(-1, 1)
-y_dense_pred = pipe_spline.predict(time_dense)
-
+```{python}
 sns.relplot(data=df, x="time", y="position", hue="kind", kind="scatter")
-plt.plot(time_dense, y_dense_pred, label="Spline Fit (Ridge)", color="black")
+
+plt.plot(df['time'], pipe_spline.predict(df[['time']]), label="Spline Fit (Ridge)", color="black")
+
 plt.legend()
 plt.title("Ridge regression spline fitting")
 plt.show()
 ```
-We had to generate a dense, evenly spaced range of time because it ensures the plotted curve is smooth, as it interpolates between the data points instead of connecting them directly.
+3. Use cross-validation to assess the fit. You **must** use [KFold](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.KFold.html) with `shuffle=True`. Explain why we need this. 
 
 ```{python}
+#| code-fold: true
+#| code-summary: Using cross validation to assess the fit.
 kf = KFold(n_splits=5, shuffle=True, random_state=42)
-cv_scores = cross_val_score(pipe_spline, X, y, cv=kf, scoring="neg_mean_squared_error")
+cv_scores = cross_val_score(pipe_spline, X, y, cv=kf, scoring="r2")
 print(cv_scores.mean())
 ```
-Okay, so in this code we only have time in our X and we are creating uniformly spaced knots on it using ridge regression and the mean of our MSE is 0.1764. The reason why we are using KFold CV is it ensures that every data point is used for both training and testing, making full use of dataset. Unlike a single train-test split, K-Fold reduces the risk of overestimating or underestimating model performance due to data sampling biases
+The reason why we are using KFold CV is KFold with shuffling ensures that each fold has a random sampling of the data. This helps reduce bias and ensures the model is evaluated on different subsets, giving a more reliable performance estimate.
+:::
 
 ## 3.3 Optimized splines
 ::: {.callout-note icon=false appearance="simple"} 
@@ -86,130 +138,201 @@ Okay, so in this code we only have time in our X and we are creating uniformly s
 Fit two cubic spline models, one for `kind="Up"` and one for `kind="Down"`.
 
 **Note:** You will get *considerable* bonus points if you manage to do this exercise with one pipe, i.e., not fitting to separate spline models. This is not necessary for getting 5/5 points on this exercise though.
+
+```{python}
+col_transformer = ColumnTransformer(
+    transformers=[
+        ("spline", SplineTransformer(n_knots=10, degree=3, include_bias=False), ["time"]),
+        ("kind", OneHotEncoder(drop="first"), ["kind"]) 
+    ])
+
+pipe_spline = Pipeline([
+    ("preprocessor", col_transformer),
+    ("ridge", RidgeCV(alphas=np.logspace(-4, 2, 100)))
+])
+
+pipe_spline.fit(df[["time", "kind"]], df["position"])
+
+df["predicted_position"] = pipe_spline.predict(df[["time", "kind"]])
+```
+Explanation of the logic of the code: We are applying SplineTransformer for 'time' and one-hot-encoding 'kind' variables. We are using Ridge CV so that our model performs better. Classifying the different kinds is achieved with one-hot-encoding so the model can learn two different relationships between time and position for each of the two values of kind. The score of our model is 0.93.
+
+```{python}
+# | echo: false
+pipe_spline.score(df[["time", "kind"]], df["position"])
+```
 :::
-
-The code below doesn't meet the requirement for bonus points. 
-```{python}
-from copy import deepcopy
-pipe = deepcopy(pipe_spline)
-```
-
-```{python}
-df_up = df.loc[df['kind']==1, :]
-df_down = df.loc[df['kind']==0, :]
-```
-
-```{python}
-up = deepcopy(pipe)
-down = deepcopy(pipe)
-up = up.fit(df_up[['time']], df_up['position'])
-down = down.fit(df_down[['time']], df_down['position'])
-```
-
-<!-- ```{python}
-sns.relplot(data=df, x="time", y="position", hue="kind", kind="scatter")
-
-plt.plot(time_dense, y_dense_pred, label="Spline Fit (Ridge)", color="black")
-
-plt.plot(time_dense, up.predict(time_dense), label="Up Spline Fit", color="yellow")
-plt.plot(time_dense, down.predict(time_dense), label="Down Spline Fit", color="red")
-
-plt.legend()
-plt.title("Ridge Regression with Cubic Spline Fit for Up and Down")
-plt.show()
-``` -->
-
-
-
-
+ 
 ### 3.4 More optimized splines
 ::: {.callout-note icon=false appearance="simple"} 
 ## 
 1. Construct a table that reports the estimated penalization parameters, the estimated number of knots, and the cross-validated scores. It should do so for both models. Comment on the table. (*Hint*: Use `.best_params_`.)
-2. Plot the estimated curves on top of the data, as in the previous exercise. What do you see?
-:::
 
 ```{python}
-pipe_spline = Pipeline([
-    ("spline", SplineTransformer(n_knots=10, degree=3, include_bias=False)),
-    ("ridge", RidgeCV(alphas=np.logspace(-6, 6, 13)))
-])
-```
-
-```{python}
-up_model = pipe_spline.fit(df_up[['time']], df_up['position'])
-down_model = pipe_spline.fit(df_down[['time']], df_down['position'])
-```
-
-```{python}
-up_best_alpha = up_model.named_steps['ridge'].alpha_
-down_best_alpha = down_model.named_steps['ridge'].alpha_
-```
-
-```{python}
-n_knots = pipe_spline.named_steps['spline'].n_knots
+df_up = df[df['kind'] == 'up']
+df_down = df[df['kind'] == 'down']
 ```
 
 ```{python}
 kf = KFold(n_splits=5, shuffle=True, random_state=42)
-cv_scores_up = cross_val_score(up_model, df_up[['time']], df_up['position'], cv=kf, scoring="neg_mean_squared_error")
-cv_scores_down = cross_val_score(down_model, df_down[['time']], df_down['position'], cv=kf, scoring="neg_mean_squared_error")
-```
+cv_scores_up = cross_val_score(pipe_spline, df_up[["time", "kind"]], df_up["position"],cv=kf,scoring="r2").mean()
 
-```{python}
-cv_mean_up = -np.mean(cv_scores_up)
-cv_mean_down = -np.mean(cv_scores_down)
-```
+cv_scores_down = cross_val_score(pipe_spline, df_down[["time", "kind"]], df_down["position"],cv=kf, scoring="r2").mean()
 
-```{python}
-result_table = pd.DataFrame({
+best_alpha_up = pipe_spline.named_steps['ridge'].alpha_
+best_alpha_down = pipe_spline.named_steps['ridge'].alpha_
+
+table = pd.DataFrame({
     'Model': ['Up', 'Down'],
-    'Best Alpha': [up_best_alpha, down_best_alpha],
-    'Number of Knots': [n_knots, n_knots],
-    'CV Mean MSE': [cv_mean_up, cv_mean_down]
+    'Best Alpha': [best_alpha_up, best_alpha_down],
+    'CV Mean R^2': [cv_scores_up, cv_scores_down] 
 })
-result_table
+table
 ```
+*Comment*: The Mean R^2 values show that model predicts 'position' better for kind='down'. Their best alpha value, which is achieved from RidgeCV, is the same. This shows the amount of regularization applied to the model. 
 
-It suggests that the "Down" model fits the data better (i.e., the MSE is lower), while the "Up" model might have more variance or noise in the data, leading to a higher MS.
+2. Plot the estimated curves on top of the data, as in the previous exercise. What do you see?
+:::
 
 ```{python}
+y_up_pred = pipe_spline.predict(df_up[["time", "kind"]])
+y_down_pred = pipe_spline.predict(df_down[["time", "kind"]])
 
 sns.relplot(data=df, x="time", y="position", hue="kind", kind="scatter")
-
-plt.plot(time_dense, y_dense_pred, label="Spline Fit (Ridge)", color="black")
-
-plt.plot(time_dense, up.predict(time_dense), label="Up Spline Fit", color="yellow")
-plt.plot(time_dense, down.predict(time_dense), label="Down Spline Fit", color="red")
-
+plt.plot(df_up["time"], y_up_pred, label="Up Spline Fit", color="black")
+plt.plot(df_down["time"], y_down_pred, label="Down Spline Fit", color="red")
 plt.legend()
 plt.title("Ridge Regression with Cubic Spline Fit for Up and Down")
 plt.show()
-
 ```
-
-```{python}
-sns.relplot(data=df_up, x="time", y="position", label="Up", color="brown")
-sns.relplot(data=df_down, x="time", y="position", label="Down", color="red")
-```
-
-Looking at the plots of kinds(up and down), we see that kind(up) contains more noise and outliers, thus, it is leading to higher MSE.
+*Comment*: From the plot, we can see that the "up" and "down" categories follow similar patterns over time, with both showing non-linear relationships that the cubic splines capture well. The model performs better for the "down" category, which is reflected in the higher R² score. Visually, this is clear as the "down" data points align more closely with their spline fit line, indicating less fluctuation and a better fit to the data. This suggests that the model captures the trend for the "down" category more accurately than for the "up" category, where the data appears more spread out.
 
 ## 3.5 Linear regression
 ::: {.callout-note icon=false appearance="simple"} 
 ## 
 1. Run a linear regression `response ~ np.sin(time) + kind` where `up`, `down` are one-hot encoded. Use pipelines for *both* of these tasks.
+
+```{python}
+column_transformer = ColumnTransformer(
+    transformers=[
+        ('kind', OneHotEncoder(drop='first'), ['kind']),
+        ('sin', FunctionTransformer(np.sin), ['time'])
+    ],
+    remainder='passthrough'
+)
+model = Pipeline([
+    ("cols", column_transformer),
+    ("reg", LinearRegression())
+])
+model.fit(df[["time", "kind"]], df["position"])
+```
 2. Evaluate the model fit using cross-validation. Be sure to shuffle!
+
+```{python}
+kf = KFold(n_splits=5, shuffle=True, random_state=42)
+
+cv_scores = cross_val_score(model, df[['time', 'kind']], df['position'],cv=kf, scoring="r2").mean()
+
+print(f"Cross-validated R^2 score: {cv_scores}")
+```
+
 3. Plot the predicted values (as a smooth curve) on top of the data points. Make one curve for each `kind`. How well does the model fit, visually speaking?
 :::
+
+```{python}
+df_up = df[df['kind'] == 'up']
+df_down = df[df['kind'] == 'down']
+
+df_up_transformed = column_transformer.transform(df_up[['time', 'kind']])
+df_down_transformed = column_transformer.transform(df_down[['time', 'kind']])
+
+y_up_pred = model.named_steps['reg'].predict(df_up_transformed)
+y_down_pred = model.named_steps['reg'].predict(df_down_transformed)
+
+sns.relplot(data=df, x="time", y="position", hue="kind", kind="scatter")
+plt.plot(df_up["time"], y_up_pred, label="Up Fit", color="black")
+plt.plot(df_down["time"], y_down_pred, label="Down Fit", color="red")
+plt.legend()
+plt.title("Linear Regression with np.sin(time) + kind (One-Hot Encoded)")
+plt.show()
+```
+*Comment*: While the idea of using a sine transformation is correct for capturing the periodic nature of your data, the linear regression model might not be the best fit due to its inherent linearity. The first plot's model (Ridge Regression with Cubic Spline Fit) is likely to fit the data better than the second plot's model (Linear Regression with Sine Transformation). The cubic splines in the first plot are more capable of handling the sinusoidal pattern of the data, whereas the linear regression in the second plot, even with a sine transformation, struggles to match the periodic ups and downs accurately.
+
+--NEED TO SEARCH FOR MORE INFO ON THE COMMENT--
 
 ## 3.6 Inspecting the model
 ::: {.callout-note icon=false appearance="simple"} 
 ## 
 1. Report the parameters of the model, including the intercept, in a nice table. Be sure to name all coefficients.
 
+```{python}
+
+coefficients = model.named_steps['reg'].coef_
+intercept = model.named_steps['reg'].intercept_
+
+kind_feature_names = column_transformer.transformers_[0][1].get_feature_names_out(['kind'])
+
+
+features = ['sin(time)'] + list(kind_feature_names) + ['Intercept']
+coefs = list(coefficients) + [intercept]
+
+table = pd.DataFrame(zip(features, coefs), columns=['Feature', 'Coefficient'])
+
+table
+```
+
 2. Create two separate residual plots, one for each `kind` in the data. The residuals should be on the $y$-axis and `time` variable on the $x$-axis. Comment on the residual plots. Is there any pattern in either of the plots?
+
+```{python}
+y_pred = model.predict(df[['time', 'kind']])
+
+df['residuals'] = df['position'] - y_pred
+
+sns.relplot(data=df[df['kind'] == 'up'], x="time", y="residuals", kind="scatter", label="Up", color="brown")
+sns.relplot(data=df[df['kind'] == 'down'], x="time", y="residuals", kind="scatter", label="Down", color="red")
+
+plt.title('Residuals vs Time')
+plt.xlabel('Time')
+plt.ylabel('Residuals')
+plt.legend()
+plt.show()
+```
+*Comment*:In the residual plots, it is usually a good sign if the points are more scattered than when it forms clusters or forms. In this case, we see that residual for 'down' is more scattered and spread which proves the point that model performs better for when kind is 'down'. This could be for many reasons. 
+
+```{python}
+residuals_up = {}
+residuals_down = {}
+
+df_up = df[df['kind'] == 'up']
+df_down = df[df['kind'] == 'down']
+
+y_up_pred = model.predict(df_up[['time', 'kind']])
+y_down_pred = model.predict(df_down[['time', 'kind']])
+
+residuals_up = df_up['position'] - y_up_pred
+residuals_down = df_down['position'] - y_down_pred
+
+plt.figure(figsize=(10, 6))
+
+
+plt.subplot(2, 1, 1)
+plt.scatter(df_up['time'], residuals_up, color="brown", alpha=0.5)
+plt.title('Residuals for kind = "up"')
+plt.xlabel('Time')
+plt.ylabel('Residuals')
+
+plt.subplot(2, 1, 2) 
+plt.scatter(df_down['time'], residuals_down, color="red", alpha=0.5)
+plt.title('Residuals for kind = "down"')
+plt.xlabel('Time')
+plt.ylabel('Residuals')
+
+plt.tight_layout()  
+plt.show()
+```
+--I don't know which one is correct or what Jonas is asking in this question --
 :::
+
 
 ## 3.7 Model improvement 
 ::: {.callout-note icon=false appearance="simple"} 
@@ -220,3 +343,48 @@ If you do not manage to do this exercise with pipelines, do it without pipelines
 
 (*Hint*: The `FunctionTransformer(fun)` can take as input a dataframe and output a dataframe. Use `np.column_stack` inside the function passed to `FunctionTransformer` to  construct your desired dataframe.)
 :::
+
+```{python}
+def sin_transform(X):
+    return np.column_stack([np.sin(X['time'])])
+
+def cos_transform(X):
+    return np.column_stack([np.cos(6 * X['position'])])
+
+column_transformer = ColumnTransformer(
+    transformers=[
+        ('kind', OneHotEncoder(drop='first'), ['kind']),
+        ('sin', FunctionTransformer(sin_transform), ['time']),
+        ('cos', FunctionTransformer(cos_transform), ['position'])
+    ],
+    remainder='passthrough'
+)
+
+model1 = Pipeline([
+    ('preprocessor', column_transformer),
+    ('regressor', LinearRegression())
+])
+model1.fit(df[['time', 'kind', 'position']], df['position'])
+```
+
+```{python}
+kf = KFold(n_splits=5, shuffle=True, random_state=42)
+cv_score = cross_val_score(model1, df[['time', 'kind', 'position']], df['position'], cv=kf, scoring='r2').mean()
+cv_score
+```
+
+```{python}
+df_up = df[df['kind'] == 'up']
+df_down = df[df['kind'] == 'down']
+
+y_up_pred = model1.predict(df_up[['time', 'kind', 'position']])
+y_down_pred = model1.predict(df_down[['time', 'kind', 'position']])
+
+
+sns.relplot(data=df, x="time", y="position", hue="kind", kind="scatter")
+plt.plot(df_up['time'], y_up_pred, label="Up Fit", color="black")
+plt.plot(df_down['time'], y_down_pred, label="Down Fit", color="red")
+plt.legend()
+plt.title("Linear Regression with sin(time) + (kind == 'up') * cos(6 * position)")
+plt.show()
+```
