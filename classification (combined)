@@ -125,6 +125,85 @@ import warnings
 warnings.filterwarnings('ignore')
 ```
 
+```{python}
+from sklearn.model_selection import train_test_split, cross_val_score
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.3, random_state=42
+)
+model = LogisticRegression(penalty=None)
+model.fit(X_train,y_train)
+```
+
+(a) the negative log loss
+```{python}
+from sklearn.metrics import log_loss
+
+# Log loss on training data
+y_train_proba = model.predict_proba(X_train)
+train_log_loss = log_loss(y_train, y_train_proba)
+print(f"Log Loss on Training Data: {train_log_loss:.4f}")
+
+# Cross-validation log loss
+cv_scores = cross_val_score(model, X, y, cv=5, scoring='neg_log_loss')
+cv_log_loss_scores = -cv_scores
+print("Cross-Validation Log Loss Scores for Each Fold:")
+print(cv_log_loss_scores)
+average_cv_log_loss = np.mean(cv_log_loss_scores)
+print(f"Average Cross-Validation Log Loss: {average_cv_log_loss:.4f}")
+
+# Log loss on test data
+y_test_proba = model.predict_proba(X_test)
+test_log_loss = log_loss(y_test, y_test_proba)
+print(f"Log Loss on Test Data: {test_log_loss:.4f}")
+```
+
+(b) accuracy
+```{python}
+# Accuracy on training data
+train_accuracy = model.score(X_train, y_train)
+print(f"Accuracy on Training Data: {train_accuracy:.4f}")
+
+# Cross-validation accuracy
+cv_scores = cross_val_score(model, X, y, cv=5, scoring='accuracy')
+print(f"Cross-Validation Accuracy: {cv_scores.mean():.4f}")
+
+# Accuracy on test data
+test_accuracy = model.score(X_test, y_test)
+print(f"Accuracy on Test Data: {test_accuracy:.4f}")
+```
+
+Log Loss (Negative Log Loss)
+Benefits:
+    1. Handles Imbalanced Data: 
+    Log loss is less affected by class imbalances compared to accuracy. Since it considers the predicted probabilities for all classes, it gives a more nuanced evaluation of model performance.
+
+    2. More Granular: 
+    It provides a more detailed assessment of the model’s performance. Even small improvements in probability calibration are reflected in log loss, which makes it useful for fine-tuning models.
+
+Downsides: 
+    1.  Harder to Interpret:
+    It is less intuitive than accuracy because it requires understanding probabilities and logarithmic penalties.
+
+    2. Overly Sensitive:  
+    Log loss penalizes confident incorrect predictions very harshly, which can sometimes be overly sensitive to for example outliers
+
+Accuracy 
+Benefits: 
+    1. Simple and Intuitive: 
+    Accuracy is easy to calculate and understand, making it a popular metric for quick evaluations.
+    2. Direct Measure of Performance: 
+    It directly reflects the percentage of predictions that the model got right, which makes it straightforward to interpret.
+
+Downsides: 
+    1. Imbalanced Data:
+    When one or more class labels are extremely common.
+    Almost always the case. Think about churn prediction. Most customers don’t churn
+    2. Prediction Certainty: 
+    Accuracy does not take prediction certainty into account. A model predicing correctly with 51% probability can get the same score as a model with 99% probability.
+    Ranking outcomes is common – call the lead with the highest probability of buying first
+
+
 
 
 
