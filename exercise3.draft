@@ -207,7 +207,7 @@ plt.show()
 ```
 *Comment*: From the plot, we can see that the "up" and "down" categories follow similar patterns over time, with both showing non-linear relationships that the cubic splines capture well. The model performs better for the "down" category, which is reflected in the higher R² score. Visually, this is clear as the "down" data points align more closely with their spline fit line, indicating less fluctuation and a better fit to the data. This suggests that the model captures the trend for the "down" category more accurately than for the "up" category, where the data appears more spread out.
 
-## 3.5 Linear regression
+### 3.5 Linear regression
 ::: {.callout-note icon=false appearance="simple"} 
 ## 
 1. Run a linear regression `response ~ np.sin(time) + kind` where `up`, `down` are one-hot encoded. Use pipelines for *both* of these tasks.
@@ -256,9 +256,7 @@ plt.legend()
 plt.title("Linear Regression with np.sin(time) + kind (One-Hot Encoded)")
 plt.show()
 ```
-*Comment*: While the idea of using a sine transformation is correct for capturing the periodic nature of your data, the linear regression model might not be the best fit due to its inherent linearity. The first plot's model (Ridge Regression with Cubic Spline Fit) is likely to fit the data better than the second plot's model (Linear Regression with Sine Transformation). The cubic splines in the first plot are more capable of handling the sinusoidal pattern of the data, whereas the linear regression in the second plot, even with a sine transformation, struggles to match the periodic ups and downs accurately.
-
---NEED TO SEARCH FOR MORE INFO ON THE COMMENT--
+*Comment*: The plot shows a sinusoidal relationship between time and position with clear distinctions between the up and down categories. While the linear regression lines capture the general trend, they fail to model the non-linear behavior fully, particularly at the peaks and troughs.
 
 ## 3.6 Inspecting the model
 ::: {.callout-note icon=false appearance="simple"} 
@@ -282,23 +280,6 @@ table
 ```
 
 2. Create two separate residual plots, one for each `kind` in the data. The residuals should be on the $y$-axis and `time` variable on the $x$-axis. Comment on the residual plots. Is there any pattern in either of the plots?
-
-```{python}
-y_pred = model.predict(df[['time', 'kind']])
-
-df['residuals'] = df['position'] - y_pred
-
-sns.relplot(data=df[df['kind'] == 'up'], x="time", y="residuals", kind="scatter", label="Up", color="brown")
-sns.relplot(data=df[df['kind'] == 'down'], x="time", y="residuals", kind="scatter", label="Down", color="red")
-
-plt.title('Residuals vs Time')
-plt.xlabel('Time')
-plt.ylabel('Residuals')
-plt.legend()
-plt.show()
-```
-*Comment*:In the residual plots, it is usually a good sign if the points are more scattered than when it forms clusters or forms. In this case, we see that residual for 'down' is more scattered and spread which proves the point that model performs better for when kind is 'down'. This could be for many reasons. 
-
 ```{python}
 residuals_up = {}
 residuals_down = {}
@@ -330,7 +311,8 @@ plt.ylabel('Residuals')
 plt.tight_layout()  
 plt.show()
 ```
---I don't know which one is correct or what Jonas is asking in this question --
+
+*Comment*:In the residual plots, it is usually a good sign if the points are more scattered than when it forms clusters or forms. In this case, we see that residual for 'down' is more scattered and spread which proves the point that model performs better for when kind is 'down'. This could be for many reasons. 
 :::
 
 
