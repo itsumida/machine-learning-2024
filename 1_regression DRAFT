@@ -294,3 +294,88 @@ The plot above shows a positive correlation between Fuel consumption (city, high
 Outliers are more visible for Fuel Consumption (L/100 km), particularly where vehicles have high fuel consumption but relatively low emissions. This may indicate inefficiencies such as larger engines, non-optimal driving conditions, or less efficient vehicle types.
 
 There are small clusters where fuel consumption values for City and Combined are highly correlated, showing that city driving tends to be more inefficient than highway driving (more constant speeds). mpg and L/100 km metrics are generally inversely clustered.
+
+## 3.5 Linear regression
+::: {.callout-note icon=false appearance="simple"} 
+Using your insights from the previous exercise, fit a linear regression model. You should aim for an adjusted $R^2$ above `.99`.
+:::
+
+```{python}
+import statsmodels.formula.api as smf
+model = smf.ols("co2_emissions ~ engine_size + fuel_consumption_comb_l", data=df).fit()
+print(model.rsquared)
+print(model.rsquared_adj)
+```
+Why are we removing Cylinders, Fuel consumption City, Highway and mpg?
+
+1. Engine Size (L) and Cylinders are highly correlated (r=0.9). Including both introduces redundancy and multicollinearity.
+2. "Fuel Consumption City," "Highway," and "Combined" are extremely correlated (r>0.9). Keeping all three would create issues because they are almost identical predictors.
+Balanced representation: "Combined (L/100 km)" is a weighted average of City and Highway fuel consumption, making it the most representative measure of a vehicle’s overall fuel consumption.
+3. Inverse Relationship: Fuel Consumption (mpg) has a strong negative correlation (r=−0.9) with all the L/100 km metrics.Choose one system (either mpg or L/100 km) to avoid confusion. Since L/100 km is already included, mpg can be dropped.
+4. Adding "Cylinders," "City," or "Highway" adds no new information
+
+## 3.6 *p*-values
+::: {.callout-note icon=false appearance="simple"} 
+1. Provide the parameter estimates and *p*-values of your chosen model in a data frame. 
+2. Roughly explain what the *p*-values are and what they can be used for.
+3. Discuss the *p*-values in the table. How could you, potentially, use them to improve your model? (Only explain, you don't need to fit another model.)
+:::
+
+```{python}
+pd.DataFrame({"Coefficient": model.params, "p-value": model.pvalues})
+```
+
+```{python}
+
+import statsmodels.formula.api as smf
+model1 = smf.ols("co2_emissions ~ engine_size + fuel_consumption_comb_l + fuel_consumption_city + fuel_consumption_hwy ", data=df).fit()
+print(model1.rsquared)
+print(model1.rsquared_adj)
+```
+
+```{python}
+pd.DataFrame({"Coefficient": model1.params, "p-value": model1.pvalues})
+```
+
+In the second model, that is when everything was included, we see that pvalues are large. That means those variables are insignifant. When we include insignifact features, it creates redundancy and increase adjusted r^2 only by very small increase. This tiny improvement is not worth the added complexity, especially since the new variables are not significant (high p-values).
+
+## 3.7 Another model
+::: {.callout-note icon=false appearance="simple"} 
+Suppose you only had the features `Fuel Type` and `Fuel Consumption Comb (mpg)` available. Fit an excellent model to this data.
+:::
+
+```{python}
+df.columns
+```
+Model-with-interaction-form: 
+(fuel_consumption_comb_mpg * C(fuel_type)): This term models the interaction between fuel_consumption_comb_mpg and fuel_type. This allows the effect of fuel consumption on co2_emissions to vary by fuel type.
+
+```{python}
+model = smf.ols("co2_emissions ~ fuel_consumption_comb_mpg*C(fuel_type)", data=df).fit()
+
+print(model.rsquared_adj)
+```
+Model-with-no-interaction:
+```{python}
+model_no_interaction = smf.ols("co2_emissions ~ fuel_consumption_comb_mpg+C(fuel_type)", data=df).fit()
+print(model_no_interaction.rsquared_adj)
+```
+First model provides us with better Adjusted R-squared. HOwever, both warn us with multicollinearity issues. Let's check the correlation matrix. 
+
+```{python}
+df_encoded = pd.get_dummies(df, columns=['fuel_type'], drop_first=True)
+```
+
+```{python}
+correlation_matrix = df_encoded[['fuel_consumption_comb_mpg', 'fuel_type_E', 'fuel_type_N', 'fuel_type_Z', 'fuel_type_X']].corr()
+
+plt.figure(figsize=(8, 6))  
+sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', fmt='.2f', cbar=True, square=True)
+
+plt.title("Correlation Matrix Heatmap", fontsize=16)
+plt.show()
+```
+
+This correlation matrix between fuel_consumption_comb_mpg and every fuel type is not showing a lot of multicollinearity. So where is the warning coming from?
+
+
