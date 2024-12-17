@@ -67,6 +67,9 @@ duplicate
 
 ## Some rows are completely identical, while others have small variations 
 ```
+The columns cannot be an index as none of the columns include values that are unique to each row, and re-occur throughout the dataset (i,e, Brand, which signifies the manufacturer of the vehicle, would appear multiple times and so would the model and vehicle class).
+
+Moreover, the columns such as cylinder, transmission, fuel type etc.. also cannot be included as an index column. 
 
 ```{python}
 #check number of unique values
