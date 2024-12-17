@@ -122,21 +122,6 @@ plt.suptitle("Pairplot of Features by Air Quality", y=1.02)
 plt.show()
 ```
 
-
-```{python}
-#|echo : False
-pollution_df.corr(numeric_only=True).style.background_gradient(
-    cmap="coolwarm", axis=None, vmin=-1, vmax=1
-).format(precision=1)
-```
-
-```{python}
-correlation_matrix = pollution_df.select_dtypes(include='number').corr()
-correlation_matrix
-```
-
-From the correlation matrix, either PM 2.5 or PM 2.10 should be included as they are highly correlated, and including both in a pairplot would be redundant. 
-
 ```{python}
 # | code-summary: Temperature(°C) vs. Air Quality Levels
 # | code-fold: true
@@ -144,34 +129,7 @@ sns.pairplot(pollution_df[["Temperature", "Air Quality"]], hue="Air Quality")
 plt.show()
 ```
 
-```{python}
-# | code-summary: Humidity(%) vs. Air Quality Levels
-# | code-fold: true
-sns.pairplot(pollution_df[["Humidity", "Air Quality"]], hue="Air Quality")
-plt.show()
-```
-
-```{python}
-# | code-summary: PM2.5 Concentration (µg/m³) vs. Air Quality Levels 
-# | code-fold: true
-sns.pairplot(pollution_df[["PM2.5", "Air Quality"]], hue="Air Quality")
-plt.show()
-```
-
-```{python}
-# | code-summary: NO2 Concentration (ppb) vs. Air Quality Levels 
-# | code-fold: true
-sns.pairplot(pollution_df[["NO2", "Air Quality"]], hue="Air Quality")
-plt.show()
-```
-
-
-```{python}
-# | code-summary: SO2 Concentration (ppb) vs. Air Quality Levels 
-# | code-fold: true
-sns.pairplot(pollution_df[["SO2", "Air Quality"]], hue="Air Quality")
-plt.show()
-```
+Higher temperatures are correlated with worse air quality, particularly above 30°C. There is significant overlap between 20°C to 30°C, suggesting temperature alone may not be a strong predictor.
 
 ```{python}
 # | code-summary: Proximity to Industrial Areas (km) vs. Air Quality Levels 
@@ -180,12 +138,16 @@ sns.pairplot(pollution_df[["Proximity_to_Industrial_Areas", "Air Quality"]], hue
 plt.show()
 ```
 
+Poorer air quality is associated with locations closer to industrial areas. Greater distance from industrial zones correlates with better air quality.
+
 ```{python}
 # | code-summary: Population Density (people/km²) vs. Air Quality Levels 
 # | code-fold: true
 sns.pairplot(pollution_df[["Population_Density", "Air Quality"]], hue="Air Quality")
 plt.show()
 ```
+
+Higher population densities are linked to slightly worse air quality. However, air quality levels overlap significantly within the 280-320 people/km² range.
 
 ## 2.3 Logistic regression
 ::: {.callout-note icon=false appearance="simple"} 
@@ -237,35 +199,35 @@ from sklearn.metrics import log_loss
 # Log loss on training data
 y_train_proba = model.predict_proba(X_train)
 train_log_loss = log_loss(y_train, y_train_proba)
-print(f"Log Loss on Training Data: {train_log_loss:.4f}")
+print(f"Log Loss on Training Data: {train_log_loss:.1f}")
 
 # Cross-validation log loss
 cv_scores = cross_val_score(model, X, y, cv=5, scoring='neg_log_loss')
-cv_log_loss_scores = -cv_scores
+cv_log_loss_scores = cv_scores
 print("Cross-Validation Log Loss Scores for Each Fold:")
 print(cv_log_loss_scores)
 average_cv_log_loss = np.mean(cv_log_loss_scores)
-print(f"Average Cross-Validation Log Loss: {average_cv_log_loss:.4f}")
+print(f"Average Cross-Validation Log Loss: {average_cv_log_loss:.1f}")
 
 # Log loss on test data
 y_test_proba = model.predict_proba(X_test)
 test_log_loss = log_loss(y_test, y_test_proba)
-print(f"Log Loss on Test Data: {test_log_loss:.4f}")
+print(f"Log Loss on Test Data: {test_log_loss:.1f}")
 ```
 
 (b) accuracy
 ```{python}
 # Accuracy on training data
 train_accuracy = model.score(X_train, y_train)
-print(f"Accuracy on Training Data: {train_accuracy:.4f}")
+print(f"Accuracy on Training Data: {train_accuracy:.2f}")
 
 # Cross-validation accuracy
 cv_scores = cross_val_score(model, X, y, cv=5, scoring='accuracy')
-print(f"Cross-Validation Accuracy: {cv_scores.mean():.4f}")
+print(f"Cross-Validation Accuracy: {cv_scores.mean():.2f}")
 
 # Accuracy on test data
 test_accuracy = model.score(X_test, y_test)
-print(f"Accuracy on Test Data: {test_accuracy:.4f}")
+print(f"Accuracy on Test Data: {test_accuracy:.2f}")
 ```
 
 Log Loss (Negative Log Loss)
@@ -287,6 +249,7 @@ Accuracy
 Benefits: 
     1. Simple and Intuitive: 
     Accuracy is easy to calculate and understand, making it a popular metric for quick evaluations.
+
     2. Direct Measure of Performance: 
     It directly reflects the percentage of predictions that the model got right, which makes it straightforward to interpret.
 
@@ -294,6 +257,7 @@ Downsides:
     1. Imbalanced Data:
     When one or more class labels are extremely common.
     Almost always the case. Think about churn prediction. Most customers don’t churn
+
     2. Prediction Certainty: 
     Accuracy does not take prediction certainty into account. A model predicing correctly with 51% probability can get the same score as a model with 99% probability.
     Ranking outcomes is common – call the lead with the highest probability of buying first
@@ -321,13 +285,11 @@ full_quadratic_pipeline = Pipeline([
     ('logistic', LogisticRegression(penalty=None, max_iter=1000))
 ])
 
-
 interaction_only_pipeline = Pipeline([
     ('scaler', StandardScaler()),
     ('poly', PolynomialFeatures(degree=2, include_bias=False, interaction_only=True)),
     ('logistic', LogisticRegression(penalty=None, max_iter=1000))
 ])
-
 
 scoring_metrics = ['neg_log_loss', 'accuracy']
 
@@ -335,22 +297,30 @@ baseline_cv_results = cross_validate(baseline_pipeline, X, y, cv=5, scoring=scor
 full_quadratic_cv_results = cross_validate(full_quadratic_pipeline, X, y, cv=5, scoring=scoring_metrics)
 interaction_only_cv_results = cross_validate(interaction_only_pipeline, X, y, cv=5, scoring=scoring_metrics)
 
-
 print("\nBaseline Pipeline CV Results:")
-print("Negative Log Loss (Mean):", -baseline_cv_results['test_neg_log_loss'].mean())
-print("Accuracy (Mean):", baseline_cv_results['test_accuracy'].mean())
+print("Negative Log Loss (Mean):", round(-baseline_cv_results['test_neg_log_loss'].mean(), 2))
+print("Accuracy (Mean):", round(baseline_cv_results['test_accuracy'].mean(), 2))
 
 print("\nFull Quadratic Pipeline CV Results:")
-print("Negative Log Loss (Mean):", -full_quadratic_cv_results['test_neg_log_loss'].mean())
-print("Accuracy (Mean):", full_quadratic_cv_results['test_accuracy'].mean())
+print("Negative Log Loss (Mean):", round(-full_quadratic_cv_results['test_neg_log_loss'].mean(), 2))
+print("Accuracy (Mean):", round(full_quadratic_cv_results['test_accuracy'].mean(), 2))
 
 print("\nInteraction-Only Pipeline CV Results:")
-print("Negative Log Loss (Mean):", -interaction_only_cv_results['test_neg_log_loss'].mean())
-print("Accuracy (Mean):", interaction_only_cv_results['test_accuracy'].mean())
+print("Negative Log Loss (Mean):", round(-interaction_only_cv_results['test_neg_log_loss'].mean(), 2))
+print("Accuracy (Mean):", round(interaction_only_cv_results['test_accuracy'].mean(), 2))
 ```
 
+The Baseline Pipeline performs best with a log loss of 1.28 and accuracy of 0.40, compared to the Full Quadratic and Interaction-Only models, which have slightly worse performance (log loss 1.3 and accuracy 0.39).
+
+The quadratic and interaction-only models introduce additional complexity by including polynomial and interaction terms, which may overfit the data or fail to generalize due to limited patterns in the dataset. The baseline logistic regression performs better likely because the relationships in the data are relatively simple and adding unnecessary complexity reduces performance.
 
 ## 2.5 Boosting
+::: {.callout-note icon=false appearance="simple"} 
+## 
+Run a boosting classifier on the data. Estimate its, performance of the classifier, and make an importance plot. Explain what you see. 
+:::
+
+```{python}
 import pandas as pd
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.model_selection import train_test_split
@@ -388,63 +358,30 @@ plt.xlabel("Feature Importance")
 plt.ylabel("Features")
 plt.title("Feature Importance (Gradient Boosting Classifier)")
 plt.show()
+
 ```
 
+The Gradient Boosting Classifier performs similarly to the baseline and quadratic logistic regression models, indicating that the dataset may have limited signal or non-linear structure for significant improvement. The relatively low accuracy and high log loss suggest the model struggles to make precise predictions, potentially due to noisy or overlapping data features. Therefore The Gradient Boosting Classifier captures non-linear relationships, but the overall performance remains low.
+
+The feature importance plot highlights which variables contribute most to the model's predictions. Features with higher importance are more influential in determining the target variable.
 
 ## 2.6 Other models
 ::: {.callout-note icon=false appearance="simple"} 
 ## 
 Discuss other potential models for this data set. Do you find it likely that any of them would perform better than logistic regression?
 :::
-1. Decision Trees
-Why it might perform better:
-Decision trees do not make assumptions about the linearity of the data. They can capture non-linear relationships between the features (such as PM2.5 and NO2 concentration) and the target variable (Air Quality). Given that pollution data often exhibits non-linear behavior, decision trees may help improve classification accuracy. Moreover, decision trees are able to handle interactions between features without the need for explicit modeling.
 
-Handling class imbalance:
-Decision trees can also handle imbalanced datasets, although they might overfit. Pruning or ensemble methods like Random Forest can mitigate this.
+1. Decision Trees and Random Forests:
+Decision Trees can capture non-linear relationships and feature interactions without assuming linearity, which is beneficial for pollution data that often exhibits such complexities. Random Forests, as an ensemble of decision trees, reduce the risk of overfitting and variance by aggregating multiple trees, providing more robust performance. Both models can handle class imbalance by adjusting class weights or using balanced sampling. However, Decision Trees may overfit, leading to poor generalization, while Random Forests, though more robust, can be computationally expensive and harder to interpret compared to logistic regression.
 
-Potential Issue:
-A major downside is that individual decision trees may overfit the training data, leading to poor generalization. This can be addressed using ensemble methods like Random Forest or Gradient Boosting.
+2. Gradient Boosting Machines (GBM):
+Gradient Boosting Machines (including implementations like XGBoost and LightGBM) build trees sequentially, where each tree attempts to correct the errors of the previous one. This makes them highly effective at capturing complex relationships and non-linear patterns in data. GBMs can manage class imbalance using class weights or specialized loss functions, improving their performance in skewed datasets. However, they require careful tuning of hyperparameters and are computationally intensive, making them less interpretable than logistic regression.
 
-2. Random Forest
-Why it might perform better:
-Random Forest is an ensemble learning method that aggregates multiple decision trees. This technique reduces overfitting and variance compared to individual decision trees. It is effective for capturing non-linear relationships and interactions between features (like PM2.5, NO2, and proximity to industrial areas) that logistic regression might miss.
+3. K-Nearest Neighbors (KNN):
+K-Nearest Neighbors (KNN) is a non-parametric method that captures complex decision boundaries by classifying a data point based on the majority class of its nearest neighbors. It works well for datasets with intricate relationships between features. KNN can handle class imbalance through weighted approaches, where closer neighbors have more influence. However, it is computationally expensive for large datasets and struggles with high-dimensional or noisy data, making it less efficient than other models like logistic regression in certain situations.
 
-Handling class imbalance:
-Random Forest has mechanisms for dealing with class imbalance (e.g., by adjusting class weights or using balanced random forests).
 
-Potential Issue:
-Although Random Forests provide good performance, they can be computationally expensive, especially on larger datasets, and the model's interpretability is reduced compared to logistic regression.
 
-3. Gradient Boosting Machines (GBM)
-Why it might perform better:
-GBM, including popular implementations like XGBoost or LightGBM, is a powerful ensemble method that builds trees sequentially, with each tree learning to correct the mistakes of the previous one. This approach is highly effective for capturing complex relationships in the data. Like Random Forests, GBM handles non-linearity and interactions between features but often provides better performance due to its sequential correction mechanism.
-
-Handling class imbalance:
-GBMs can effectively handle imbalanced datasets by adjusting class weights or using specific loss functions designed for imbalance (e.g., log-loss or Focal Loss).
-
-Potential Issue:
-GBMs require careful tuning of hyperparameters (e.g., learning rate, number of trees) and can be computationally expensive. Also, while the performance is high, it may not be as interpretable as logistic regression.
-
-4. K-Nearest Neighbors (KNN)
-Why it might perform better:
-KNN is a non-parametric method that can capture complex decision boundaries, making it suitable for pollution data with intricate relationships. It works by classifying a data point based on the majority class of its nearest neighbors.
-
-Handling class imbalance:
-KNN can struggle with class imbalance because it tends to favor the majority class in cases of unequal distribution. However, using weighted KNN (where closer neighbors have more influence) can help mitigate this issue.
-
-Potential Issue:
-KNN is computationally expensive for large datasets since it requires calculating distances to all other points at prediction time. It also performs poorly if the data has many irrelevant features or is high-dimensional, which may be a concern for the pollution dataset with multiple continuous features.
-
-5. XGBoost (Extreme Gradient Boosting)
-Why it might perform better:
-XGBoost is an optimized implementation of gradient boosting that is widely known for its high performance in classification tasks. It handles non-linear relationships well, has built-in regularization to prevent overfitting, and is highly efficient for large datasets. Given the complexity of pollution data, XGBoost could be very effective in predicting air quality.
-
-Handling class imbalance:
-XGBoost includes features such as scale_pos_weight that can help handle class imbalance by adjusting the weight of positive samples during training.
-
-Potential Issue:
-Like other tree-based methods, XGBoost can be difficult to interpret, and it requires hyperparameter tuning to achieve the best performance.
 
 
 
