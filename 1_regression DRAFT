@@ -301,6 +301,41 @@ Using your insights from the previous exercise, fit a linear regression model. Y
 :::
 
 ```{python}
+# | echo: false
+categorical_cols = ['Model', 'Vehicle Class', 'Transmission', 'Fuel Type']
+```
+
+```{python}
+# | echo: false
+df.rename(columns={'Engine Size(L)': 'engine_size',
+'Fuel Consumption City (L/100 km)': 'fuel_consumption_city',
+'Fuel Consumption Hwy (L/100 km)':'fuel_consumption_hwy',
+'Fuel Consumption Comb (L/100 km)': 'fuel_consumption_comb_l',
+'Fuel Consumption Comb (mpg)': 'fuel_consumption_comb_mpg',
+'CO2 Emissions(g/km)': 'co2_emissions'}, inplace=True)
+```
+
+```{python}
+df.info()
+```
+```{python}
+#| echo: False
+covariates = df.columns.drop(categorical_cols+['co2_emissions'])
+fits = {cov: smf.ols("co2_emissions ~ " + cov, data = df).fit() for cov in covariates}
+```
+
+```{python}
+# | echo: false
+df.rename(columns={'Engine Size(L)': 'engine_size',
+'Fuel Consumption City (L/100 km)': 'fuel_consumption_city',
+'Fuel Consumption Hwy (L/100 km)':'fuel_consumption_hwy',
+'Fuel Consumption Comb (L/100 km)': 'fuel_consumption_comb_l',
+'Fuel Consumption Comb (mpg)': 'fuel_consumption_comb_mpg',
+'CO2 Emissions(g/km)': 'co2_emissions',
+'Fuel Type': 'fuel_type'}, inplace=True)
+```
+
+```{python}
 import statsmodels.formula.api as smf
 model = smf.ols("co2_emissions ~ engine_size + fuel_consumption_comb_l", data=df).fit()
 print(model.rsquared)
@@ -377,5 +412,4 @@ plt.show()
 ```
 
 This correlation matrix between fuel_consumption_comb_mpg and every fuel type is not showing a lot of multicollinearity. So where is the warning coming from?
-
 
