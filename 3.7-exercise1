@@ -1,0 +1,25 @@
+```{python}
+model = smf.ols("co2_emissions ~ fuel_consumption_comb_mpg*C(fuel_type)", data=df).fit()
+
+print(model.rsquared_adj)
+```
+Model-with-no-interaction:
+```{python}
+model_no_interaction = smf.ols("co2_emissions ~ fuel_consumption_comb_mpg+C(fuel_type)", data=df).fit()
+print(model_no_interaction.rsquared_adj)
+```
+First model provides us with better Adjusted R-squared. HOwever, both warn us with multicollinearity issues. Let's check the correlation matrix. 
+
+```{python}
+df_encoded = pd.get_dummies(df, columns=['fuel_type'], drop_first=True)
+```
+
+```{python}
+correlation_matrix = df_encoded[['fuel_consumption_comb_mpg', 'fuel_type_E', 'fuel_type_N', 'fuel_type_Z', 'fuel_type_X']].corr()
+
+plt.figure(figsize=(8, 6))  
+sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', fmt='.2f', cbar=True, square=True)
+
+plt.title("Correlation Matrix Heatmap", fontsize=16)
+plt.show()
+```
