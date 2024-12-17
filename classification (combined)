@@ -92,5 +92,65 @@ plt.suptitle("Pairplot of Features by Air Quality", y=1.02)
 plt.show()
 
 ```
+## 2.3 Logistic regression
+::: {.callout-note icon=false appearance="simple"} 
+## 
+Remove the column `PP10` from the `pollution` dataset (and `X` and `y`). We will work with this modified data set in the remainder of the exercise.
+
+Using cross-validation, evaluate the fit of an non-penalized logistic regression on the whole data set using (a) the negative log loss, (b) accuracy. 
+
+What are the benefits and downsides of using the log loss vs. the accuracy?
+
+(*Hint*: Use the argument `scoring = "neg_log_loss"`. Use the argument `warning: False` to suppress warnings in the output of a code block.)
+
+```{python}
+import pandas as pd
+
+file_path = 'pollution.csv'  
+data = pd.read_csv(file_path)
+
+data_cleaned = data.dropna()
+
+
+X = data_cleaned.drop(columns=['Air Quality'])
+y = data_cleaned['Air Quality']
+
+
+print("Feature Matrix (X):")
+print(X.head())
+
+print("\nTarget Vector (y):")
+print(y.head())
+
+(snswer the benefits and downside)
+
+Log loss benefits:
+1. Handles Imbalanced Data:
+Log loss is less affected by class imbalances compared to accuracy. Since it considers the predicted probabilities for all classes, it gives a more nuanced evaluation of model performance.
+
+2. More granular 
+It provides a more detailed assessment of the model’s performance. Even small improvements in probability calibration are reflected in log loss, which makes it useful for fine-tuning models.
+
+Log log loss downsides:
+1. It is less intuitive than accuracy because it requires understanding probabilities and logarithmic penalties.
+
+2. Log loss penalizes confident incorrect predictions very harshly, which can sometimes be overly sensitive
+
+Accuracy benefits 
+1.Simple and Intuitive:
+Accuracy is easy to calculate and understand, making it a popular metric for quick evaluations.
+
+2.Direct Measure of Performance:
+It directly reflects the percentage of predictions that the model got right, which makes it straightforward to interpret.
+
+Accuracy downsides
+1. Imbalanced data.
+When one or more class labels are extremely common.
+Almost always the case. Think about churn prediction. Most customers don’t churn
+
+2. Prediction certainty.
+Accuracy does not take prediction certainty into account. A model predicing correctly with 51% probability can get the same score as a model with 99% probability.
+Ranking outcomes is common – call the lead with the highest probability of buying first
+
 
 
