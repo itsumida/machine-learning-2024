@@ -335,7 +335,7 @@ print(results_df)
 ## 
 Run a boosting classifier on the data. Estimate its, performance of the classifier, and make an importance plot. Explain what you see. 
 :::
-
+```{python}
 import pandas as pd
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.model_selection import train_test_split
@@ -370,6 +370,8 @@ plt.xlabel("Feature Importance")
 plt.ylabel("Features")
 plt.title("Feature Importance (Gradient Boosting Classifier)")
 plt.show()
+
+```
 
 ```
 
