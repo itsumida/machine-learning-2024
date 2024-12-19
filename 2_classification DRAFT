@@ -280,6 +280,7 @@ It's natural to check for "simple" non-linearity by running quadratic logistic r
 Place the accuracy and log scores for these two models, and the model you made in the previous exercise, in a nicely formatted table. Which model performs best? What is happening here?
 :::
 
+```{python}
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler, PolynomialFeatures
 from sklearn.linear_model import LogisticRegression
@@ -325,6 +326,8 @@ results = {
 
 results_df = pd.DataFrame(results)
 print(results_df)
+
+```
 
 
 ## 2.5 Boosting
