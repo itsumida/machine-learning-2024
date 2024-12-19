@@ -2,12 +2,12 @@
 
 ## Declarations
 
-- [ ] I have gone through the CHECKLIST.qmd before submitting this exercise.
+- [X] I have gone through the CHECKLIST.qmd before submitting this exercise.
 
 Check the following if true:
 
 - [ ] I have used generative AI to create answers in this exercise.
-- [ ] I have used generative AI as a sparring partner (or used tools such as Github Copilot).
+- [X] I have used generative AI as a sparring partner (or used tools such as Github Copilot).
 
 ## Prelude
 The file `co2.csv` contains car specifications, fuel consumption, and CO2 emissions.
@@ -28,10 +28,7 @@ The file `co2.csv` contains car specifications, fuel consumption, and CO2 emissi
 1. Import and investigate the data. Should one of the columns be an index?
 
 ```{python}
-pip install statsmodels
-```
-
-```{python}
+# | code-summary: Importing packages 
 #| code-fold: True
 import pandas as pd
 import numpy as np
@@ -44,65 +41,59 @@ from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor, StackingRegressor
 from sklearn.linear_model import LinearRegression
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-from sklearn.impute import SimpleImputer
-from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import GridSearchCV 
 ```
 
 ```{python}
+# | code-summary: First five rows of dataframe displayed
+#| code-fold: True
 co2 = pd.read_csv("co2.csv")
 df = co2.copy()
+df.head()
 ```
 
 ```{python}
-df.head()
 df.info()
 ```
 
+```{python}
+print(df.isnull().sum())
+```
 
 ```{python}
-# Checking duplicate values 
+# | code-summary: Checking duplicate values
+#| code-fold: True
 duplicate = df[df.duplicated(keep=False)]
 duplicate  
 
-## Some rows are completely identical, while others have small variations 
+## Some rows are completely identical, while others have small variations. 
 ```
+
 The columns cannot be an index as none of the columns include values that are unique to each row, and re-occur throughout the dataset (i,e, Brand, which signifies the manufacturer of the vehicle, would appear multiple times and so would the model and vehicle class).
 
 Moreover, the columns such as cylinder, transmission, fuel type etc.. also cannot be included as an index column. 
 
 If we were to create an index, it would preferrable to have a default integer index as when filtering or performing row-specific operations this would be more useful. 
 
+
 ```{python}
-#check number of unique values
+# | code-summary: Find the number of unique values 
+#| code-fold: True
 def get_unique_values(df):
-    
-    output_data = []
-
-    for col in df.columns:
-
-        # If the number of unique values in the column is less than or equal to 5
-        if df.loc[:, col].nunique() <= 10:
-            # Get the unique values in the column
-            unique_values = df.loc[:, col].unique()
-            # Append the column name, number of unique values, unique values, and data type to the output data
-            output_data.append([col, df.loc[:, col].nunique(), unique_values, df.loc[:, col].dtype])
-        else:
-            # Otherwise, append only the column name, number of unique values, and data type to the output data
-            output_data.append([col, df.loc[:, col].nunique(),"-", df.loc[:, col].dtype])
-
-    output_df = pd.DataFrame(output_data, columns=['Column Name', 'Number of Unique Values', ' Unique Values ', 'Data Type'])
-
-    return output_df
+    output_data = [
+        [col, df[col].nunique(), df[col].unique() if df[col].nunique() <= 10 else "-", df[col].dtype]
+        for col in df.columns
+    ]
+    return pd.DataFrame(output_data, columns=['Column Name', 'Number of Unique Values', 'Unique Values', 'Data Type'])
 
 get_unique_values(df)
-
 ```
-
 
 2. How many columns and rows are there?
 
 ```{python}
+# | code-summary: Finding the number of columns and rows 
+#| code-fold: True
 rows, columns = df.shape 
 
 print(f"Rows:{rows}")
@@ -117,25 +108,22 @@ print(df.dtypes)
 ```
 
 ```{python}
+# | code-summary: Displaying numerical and categorical variables 
+#| code-fold: True
 def get_unique_values(df):
     output_data = []
-
+    
     for col in df.columns:
-        # Check if the column is numerical or categorical
+        # Determine if the column is Numerical or Categorical
         col_type = 'Numerical' if pd.api.types.is_numeric_dtype(df[col]) else 'Categorical'
         
-        # If the column is categorical or has 10 or fewer unique values, display the unique values
-        if df.loc[:, col].nunique() <= 10 or col_type == 'Categorical':
-            unique_values = df.loc[:, col].unique()
-            output_data.append([col, df.loc[:, col].nunique(), unique_values, col_type])
-        else:
-            # For numerical columns with more than 10 unique values, omit listing unique values
-            output_data.append([col, df.loc[:, col].nunique(), "-", col_type])
+        # Collect unique values if categorical or has 10 or fewer unique entries
+        unique_values = df[col].unique() if df[col].nunique() <= 10 or col_type == 'Categorical' else "-"
+        
+        output_data.append([col, df[col].nunique(), unique_values, col_type])
 
-    # Create the output DataFrame
-    output_df = pd.DataFrame(output_data, columns=['Column Name', 'Number of Unique Values', 'Unique Values', 'Type'])
-
-    return output_df
+    # Convert the collected data to a DataFrame
+    return pd.DataFrame(output_data, columns=['Column Name', 'Number of Unique Values', 'Unique Values', 'Type'])
 
 get_unique_values(df)
 ```
@@ -148,12 +136,14 @@ The columns Engine Size (L), Cylinders, Fuel Consumption City(L/100km), Fuel Con
 :::
 
 ```{python}
-# Checking missing values 
-missing_count = df.isnull().sum()
-value_count = df.isnull().count()
-missing_percentage = round(missing_count / value_count * 100, 2)
-missing_df = pd.DataFrame({"count": missing_count, "percentage": missing_percentage})
+# | code-summary: Checking missing values
+#| code-fold: True
+missing_df = pd.DataFrame({
+    'count': df.isnull().sum()
+})
+
 missing_df
+
 ```
 
 Conclusion: No missing values; no 'N/A' values 
@@ -171,38 +161,45 @@ co2_correlation = correlation_matrix["CO2 Emissions(g/km)"]
 co2_correlation
 ```
 All of the numerical variables except for 'Fuel Consumption Comb(mpg)' have strong correlation with CO2 emissions, with Fuel consumption in the city and the combined Fuel consumption in the city and highway have the strongest correlation. 
-
 The weak correlation between fuel consumption (mpg) and CO2 emissions (g/km) could be due to differences in units, as mpg is inversely proportional and measured in imperial units, while CO2 emissions are directly proportional and measured in metric units.
+```
+
+```{python}
 
 ```
 
 ## 3.3 Bar graphs
-::: {.callout-note icon=false appearance="simple"} 
+
+::: {.callout-note icon=false appearance="simple"}
 Make some informative plots (e.g., bar graphs) relating the target variable to the relevant non-numeric features of `CO2`. Make the plots readable, and be sure to comment each plot.
 :::
-This plot shows fuel types and how much they contribute to CO2 emissions. Overall, numbers are pretty high. However, Fuel Type E and Z make up the highest CO2 emissions. 
 
 ```{python}
 
 ```
+
 ```{python}
-# | code-summary: Fuel Type vs. Emissions
 #| code-fold: True
-plt.figure(figsize=(10, 6))
-sns.barplot(x='Fuel Type', y='CO2 Emissions(g/km)', data=df, palette='coolwarm')
+#| code-summary: "Fuel Type vs. Emissions"
+#| label: fig-fuel-type-emissions
+
+plt.figure(figsize=(8, 5))
+sns.barplot(x='Fuel Type', y='CO2 Emissions(g/km)', data=df, hue='Fuel Type', palette='coolwarm', legend=False)
 plt.title("CO2 Emissions by Fuel Type")
 plt.xlabel("Fuel Type")
 plt.ylabel("CO2 Emissions (g/km)")
 plt.show()
 ```
 
+This plot (see @fig-fuel-type-emissions) shows fuel types and how much they contribute to CO2 emissions. Overall, the numbers are pretty high. However, Fuel Type E and Z make up the highest CO2 emissions.
 
-This bar plot shows CO2 emissions emitted per each vehicle class. As seen from the graph, number 1 contributor is Van - Passenger and the least harmful vehicle class type is Station Wagon - small.
 ```{python}
 # | code-summary: Vehicle Class vs. Emissions.
 #| code-fold: True
-plt.figure(figsize=(10, 6))
-sns.barplot(x='CO2 Emissions(g/km)', y='Vehicle Class', data=df, palette='muted')
+#| label: fig-vehicle-class-emissions
+
+plt.figure(figsize=(7, 6))
+sns.barplot(x='CO2 Emissions(g/km)', y='Vehicle Class', data=df, hue='Vehicle Class', palette='muted', legend=False)
 plt.title("CO2 Emissions by Vehicle Class")
 plt.ylabel("Vehicle Class")
 plt.xlabel("CO2 Emissions (g/km)")
@@ -210,12 +207,15 @@ plt.tight_layout()
 plt.show()
 ```
 
-This bar plot shows relationship between Transmission and CO2 emissions. Given transmission types determine how the engine power is delivered to the wheels. In this case, AV10 and AV7 are the most CO2 emittors. 
+This plot (see @fig-vehicle-class-emissions) shows CO2 emissions emitted per each vehicle class. As seen from the graph, the number one contributor is Van - Passenger, and the least harmful vehicle class type is Station Wagon - small.
+
 ```{python}
 # | code-summary: Transmission vs. Emissions
 #| code-fold: True
-plt.figure(figsize=(10, 6))
-sns.barplot(x='Transmission', y='CO2 Emissions(g/km)', data=df, palette='muted')
+#| label: fig-transmission-emissions
+
+plt.figure(figsize=(9, 5))
+sns.barplot(x='Transmission', y='CO2 Emissions(g/km)', data=df, hue='Transmission', palette='muted', legend=False)
 plt.title("CO2 Emissions by Transmission")
 plt.xlabel("Transmission")
 plt.ylabel("CO2 Emissions (g/km)")
@@ -223,7 +223,7 @@ plt.tight_layout()
 plt.show()
 ```
 
-
+This plot (see @fig-transmission-emissions) shows the relationship between Transmission and CO2 emissions. Given that transmission types determine how the engine power is delivered to the wheels, it can be seen that AV10 and AV7 are the most significant CO2 emitters.
 
 ## 3.4 More correlations
 ::: {.callout-note icon=false appearance="simple"} 
@@ -232,17 +232,21 @@ Investigate the whole correlation matrix, but don't report it. Are there any int
 Inspect a pair plot to check for linearity. Report 1 - 4 graphs illustrating your most important findings.
 :::
 ```{python}
-#|echo : False
+# | code-fold: true
+#| output: false
 df.corr(numeric_only=True).style.background_gradient(
     cmap="coolwarm", axis=None, vmin=-1, vmax=1
 ).format(precision=1)
 ```
 
 ```{python}
+# | code-fold: true
+#| output: false
 correlation_matrix = df.select_dtypes(include='number').corr()
 correlation_matrix
 ```
 Well, there a few things worth noting about the whole correlation matrix. 
+
 1. Fuel Consumptions measured in (L/100 km) have strong correlation with each other. 
 2. Fuel Consumption Comb(mpg) is the only variable that is least correlated with other features. That could be because of difference in units for sure. 
 3. Overall, correlation coefficients are above 
@@ -251,42 +255,50 @@ Well, there a few things worth noting about the whole correlation matrix.
 ```{python}
 # | code-summary: Fuel Consumption(mpg) vs. Emissions
 # | code-fold: true
+# | label: fig-fuel-consumption-emissions
+
 sns.pairplot(df[["CO2 Emissions(g/km)", "Fuel Consumption Comb (mpg)"]])
 ```
 
-The plot above displays a clear negative relationship between Fuel Consumption Comb (mpg) and CO2 Emissions; a higher mpg (combined fuel consumption) would mean an improved fuel efficiency and lead to lower emissions. 
+The plot (see @fig-fuel-consumption-emissions) above displays a clear negative relationship between Fuel Consumption Comb (mpg) and CO2 Emissions. A higher mpg (combined fuel consumption) would mean improved fuel efficiency and lead to lower emissions.
 
-There are some outliers, particularly in vehicles with higher emissions but relatively low mpg. These outliers can be due to the presence of  larger and/or less efficient vehicle models. 
+There are some outliers, particularly in vehicles with higher emissions but relatively low mpg. These outliers could be due to the presence of larger and/or less efficient vehicle models.
 
-There are no obvious clusters in the plot, which suggest a linear relationship beting present without the presence of distinct groups within the data. 
+There are no obvious clusters in the plot, which suggests a linear relationship is present without distinct groups within the data.
 
 ```{python}
 # | code-summary: Fuel Consumptions in (L/100 km) vs. Fuel Consumption(mpg) 
 # | code-fold: true
+# | label: fig-fuel-consumption-comb-mpg
+
 sns.pairplot(df[[ "Fuel Consumption City (L/100 km)", "Fuel Consumption Hwy (L/100 km)", "Fuel Consumption Comb (L/100 km)", "Fuel Consumption Comb (mpg)"]])
 ```
 
-This plot above displays a strong negative correlation between Fuel Consumption (L/100 km) and Fuel Consumption Comb (mpg), which shows the inverse relationship that is formed because of the difference in units, where mpg measures the efficiency in imperial units whereas km is the metric equivalent. 
+The plot (see @fig-fuel-consumption-comb-mpg) above displays a strong negative correlation between Fuel Consumption (L/100 km) and Fuel Consumption Comb (mpg), highlighting the inverse relationship caused by the difference in units—mpg measures efficiency in imperial units, while km is the metric equivalent.
 
-There are no significant outliers that are visible, however, some vehicles have extreme values, which can be explained due to the presence of larger vehicles in the dataset with higher consumption. 
+Although no significant outliers are visible, some vehicles have extreme values, which can be attributed to the presence of larger vehicles in the dataset with higher consumption.
 
-A slight seperation between Fuel Consumption City (L/100 km) and and Fuel Consumption Hwy (L/100 km) is present, suggesting that city consumption is usually higher and less fuel-efficient. 
+A slight separation between Fuel Consumption City (L/100 km) and Fuel Consumption Hwy (L/100 km) is present, suggesting that city consumption is usually higher and less fuel-efficient.
 
 ```{python}
 # | code-summary: Engine Size vs. CO₂ Emissions
 # | code-fold: true
+# | label: fig-engine-size-emissions
+
 sns.pairplot(df[["Engine Size(L)", "CO2 Emissions(g/km)"]])
 ```
 
-The plot above shows a positive relationship between Engine Size and CO2 Emissions; larger engine sezes tend to produce higher emissions due to the increased fuel consumption required. 
+The plot (see @fig-engine-size-emissions) above shows a positive relationship between Engine Size and CO2 Emissions; larger engine sizes tend to produce higher emissions due to the increased fuel consumption required.
 
-There are some outliers present with larger engines (e.g. above 7), that could be due to other factors such as the engine or fuel type suggesting that engine size alone does not always perfectly correlate with emissions. 
+There are some outliers present with larger engines (e.g., above 7), which could be due to other factors such as the engine or fuel type, suggesting that engine size alone does not always perfectly correlate with emissions.
 
-There is no strong clustering of points, but a pattern shows that larger engine sizes tend to cluster around higher CO2 Emissions. 
+While there is no strong clustering of points, a pattern shows that larger engine sizes tend to cluster around higher CO2 emissions.
 
 ```{python}
 # | code-summary: All Fuel Consumption Metrics vs. CO₂ Emissions
 # | code-fold: true
+# | label: fig-fuel-consumption-all-emissions
+
 sns.pairplot(df[["Fuel Consumption City (L/100 km)", 
                  "Fuel Consumption Hwy (L/100 km)", 
                  "Fuel Consumption Comb (L/100 km)", 
@@ -294,11 +306,11 @@ sns.pairplot(df[["Fuel Consumption City (L/100 km)",
                  "CO2 Emissions(g/km)"]])
 ```
 
-The plot above shows a positive correlation between Fuel consumption (city, highway and combined) in metrics and CO2 Emissions; a higher fuel consumption leads to higher emissions. The mpg variable, however, has a negative relationship with CO2 emissions; a higher mpg (implying improved fuel efficiency) leads to lower emissions.
+The plot (see @fig-fuel-consumption-all-emissions) above shows a positive correlation between fuel consumption (city, highway, and combined) in metrics and CO2 emissions; higher fuel consumption leads to higher emissions. The mpg variable, however, has a negative relationship with CO2 emissions; a higher mpg (implying improved fuel efficiency) leads to lower emissions.
 
 Outliers are more visible for Fuel Consumption (L/100 km), particularly where vehicles have high fuel consumption but relatively low emissions. This may indicate inefficiencies such as larger engines, non-optimal driving conditions, or less efficient vehicle types.
 
-There are small clusters where fuel consumption values for City and Combined are highly correlated, showing that city driving tends to be more inefficient than highway driving (more constant speeds). mpg and L/100 km metrics are generally inversely clustered.
+There are small clusters where fuel consumption values for City and Combined are highly correlated, showing that city driving tends to be more inefficient than highway driving (which generally involves more constant speeds). The mpg and L/100 km metrics are generally inversely clustered.
 
 ## 3.5 Linear regression
 ::: {.callout-note icon=false appearance="simple"} 
@@ -366,7 +378,6 @@ pd.DataFrame({"Coefficient": model.params, "p-value": model.pvalues})
 ```
 
 ```{python}
-
 import statsmodels.formula.api as smf
 model1 = smf.ols("co2_emissions ~ engine_size + fuel_consumption_comb_l + fuel_consumption_city + fuel_consumption_hwy ", data=df).fit()
 print(model1.rsquared)
@@ -378,6 +389,12 @@ pd.DataFrame({"Coefficient": model1.params, "p-value": model1.pvalues})
 ```
 
 In the second model, that is when everything was included, we see that pvalues are large. That means those variables are insignifant. When we include insignifact features, it creates redundancy and increase adjusted r^2 only by very small increase. This tiny improvement is not worth the added complexity, especially since the new variables are not significant (high p-values).
+
+p-values indicate the probability of observing the estimated effect if the predictor has no real impact (null hypothesis is true). A low p-value (typically < 0.05) suggests the predictor is significant, while a high p-value indicates the predictor is likely insignificant and may not meaningfully contribute to the model.
+
+The p-values show that some predictors, like fuel_consumption_city and fuel_consumption_hwy, are not statistically significant (high p-values).
+
+ Although we could remove these variables to simplify the model, multicollinearity with other predictors (like fuel_consumption_comb_l) might be causing the insignificance. Therefore, it's not strictly necessary to remove them if they provide useful context or if multicollinearity is unavoidable.
 
 ## 3.7 Another model
 ::: {.callout-note icon=false appearance="simple"} 
@@ -392,7 +409,6 @@ Model-with-interaction-form:
 
 ```{python}
 model = smf.ols("co2_emissions ~ fuel_consumption_comb_mpg*C(fuel_type)", data=df).fit()
-
 print(model.rsquared_adj)
 ```
 Model-with-no-interaction:
@@ -400,21 +416,4 @@ Model-with-no-interaction:
 model_no_interaction = smf.ols("co2_emissions ~ fuel_consumption_comb_mpg+C(fuel_type)", data=df).fit()
 print(model_no_interaction.rsquared_adj)
 ```
-First model provides us with better Adjusted R-squared. HOwever, both warn us with multicollinearity issues. Let's check the correlation matrix. 
-
-```{python}
-df_encoded = pd.get_dummies(df, columns=['fuel_type'], drop_first=True)
-```
-
-```{python}
-correlation_matrix = df_encoded[['fuel_consumption_comb_mpg', 'fuel_type_E', 'fuel_type_N', 'fuel_type_Z', 'fuel_type_X']].corr()
-
-plt.figure(figsize=(8, 6))  
-sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', fmt='.2f', cbar=True, square=True)
-
-plt.title("Correlation Matrix Heatmap", fontsize=16)
-plt.show()
-```
-
-This correlation matrix between fuel_consumption_comb_mpg and every fuel type is not showing a lot of multicollinearity. So where is the warning coming from?
-
+First model provides us with better Adjusted R-squared. 
