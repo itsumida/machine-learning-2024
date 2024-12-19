@@ -1,12 +1,12 @@
 # 2 Classification of air quality
 
 ## Declarations
-- [*] I have gone through the CHECKLIST.qmd before submitting this exercise.
+- [X] I have gone through the CHECKLIST.qmd before submitting this exercise.
 
 Check the following if true:
 
 - [ ] I have used generative AI to create answers in this exercise.
-- [*] I have used generative AI as a sparring partner (or used tools such as Github Copilot).
+- [X] I have used generative AI as a sparring partner (or used tools such as Github Copilot).
 
 ## Prelude
 
@@ -42,7 +42,7 @@ from sklearn.preprocessing import PolynomialFeatures
 
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.model_selection import train_test_split, cross_validate
-from sklearn.metrics import accuracy_score, log_loss
+from sklearn.metrics import accuracy_score, log_loss 
 ```
 
 ## 2.1 Import and investigate
@@ -96,7 +96,9 @@ Inspecting the categories in the target using a suitable plotting device:
 ```{python}
 # | code-summary: Air Quality Categories Distribution
 # | code-fold: True
-plt.figure(figsize=(10, 6))
+# | label: fig-air-quality-distribution
+
+plt.figure(figsize=(7, 5))
 sns.barplot(x=y.value_counts().index, y=y.value_counts().values, palette='muted')
 plt.title("Distribution of Air Quality Categories")
 plt.xlabel("Air Quality Categories")
@@ -112,21 +114,22 @@ class_counts = y.value_counts()
 print(class_counts)
 ```
 
-As seen from the barplot, the target is indeed imbalanced and the difference between the majority class (Good Air Quality) had a value count that is 1500 higher than the minority class (Hazardous Air Quality). 
+As seen from the bar plot (see @fig-air-quality-distribution), the target is indeed imbalanced. The majority class (Good Air Quality) has a value count that is 1500 higher than the minority class (Hazardous Air Quality).
 
 Inspecting the pairplot:
 ```{python}
+# | code-summary: Pairplot code 
 # | code-fold: True
+# | label: fig-pairplot-air-quality
 sns.pairplot(pollution_df, hue='Air Quality', diag_kind='kde', corner=True, palette="coolwarm")
 plt.suptitle("Pairplot of Features by Air Quality", y=1.02)
 plt.show()
 ```
 
 ```{python}
-import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
-
+# | code-summary: Pairplot of Features by Air Quality 
+# | code-fold: True
+# | label: fig-air-quality-features
 pollution_df = pd.read_csv('pollution.csv')
 
 pollution_df = pollution_df.dropna()
@@ -150,9 +153,9 @@ plt.suptitle("Pairplot of Features by Air Quality", y=1.02)
 plt.show()
 
 ```
-Higher temperatures are correlated with worse air quality, particularly above 30°C. There is significant overlap between 20°C to 30°C, suggesting temperature alone may not be a strong predictor.
+As shown in the pair plot (see @fig-pairplot-air-quality), higher temperatures are correlated with worse air quality, particularly above 30°C. There is significant overlap between 20°C to 30°C, suggesting that temperature alone may not be a strong predictor.
 
-Poorer air quality is associated with locations closer to industrial areas. Greater distance from industrial zones correlates with better air quality.
+Poorer air quality is associated with locations closer to industrial areas, while greater distances from industrial zones correlate with better air quality.
 
 Higher population densities are linked to slightly worse air quality. However, air quality levels overlap significantly within the 280-320 people/km² range.
 
@@ -173,15 +176,22 @@ pollution_df = pollution_df.drop(columns=['PM10'])
 
 X = pollution_df.drop(columns=['Air Quality'], axis=1)
 y = pollution_df['Air Quality']
+```
 
+```{python}
+# | code-summary: Feature Matrix (X)
+# | code-fold: true
 print(X.head())
 ```
 
 ```{python}
+# | code-summary: Target Vector (y)
+# | code-fold: true
 print(y.head())
 ```
 
 ```{python}
+# | code-fold: true
 from sklearn.model_selection import cross_val_score
 from sklearn.linear_model import LogisticRegression
 from sklearn.datasets import make_classification 
@@ -201,8 +211,8 @@ model.fit(X_train,y_train)
 
 (a) the negative log loss
 ```{python}
-from sklearn.metrics import log_loss
-
+# | code-summary: The Negative Log Loss
+# | code-fold: true
 # Log loss on training data
 y_train_proba = model.predict_proba(X_train)
 train_log_loss = log_loss(y_train, y_train_proba)
@@ -224,6 +234,8 @@ print(f"Log Loss on Test Data: {test_log_loss:.1f}")
 
 (b) accuracy
 ```{python}
+# | code-summary: Accuracy 
+# | code-fold: true
 # Accuracy on training data
 train_accuracy = model.score(X_train, y_train)
 print(f"Accuracy on Training Data: {train_accuracy:.2f}")
@@ -237,35 +249,34 @@ test_accuracy = model.score(X_test, y_test)
 print(f"Accuracy on Test Data: {test_accuracy:.2f}")
 ```
 
-Log Loss (Negative Log Loss)
-Benefits:
-    1. Handles Imbalanced Data: 
-    Log loss is less affected by class imbalances compared to accuracy. Since it considers the predicted probabilities for all classes, it gives a more nuanced evaluation of model performance.
+###### **Log Loss (Negative Log Loss) Benefits**:
 
-    2. More Granular: 
+1. **Handles Imbalanced Data**: 
+    Log loss is less affected by class imbalances compared to accuracy. Since it considers the predicted probabilities for all classes, it gives a more nuanced evaluation of model performance.
+2. **More Granular**: 
     It provides a more detailed assessment of the model’s performance. Even small improvements in probability calibration are reflected in log loss, which makes it useful for fine-tuning models.
 
-Downsides: 
-    1.  Harder to Interpret:
+###### **Log Loss (Negative Log Loss) Downsides**: 
+
+1. **Harder to Interpret**:
     It is less intuitive than accuracy because it requires understanding probabilities and logarithmic penalties.
+2. **Overly Sensitive**: Log loss penalizes confident incorrect predictions very harshly, which can sometimes be overly sensitive to for example outliers
 
-    2. Overly Sensitive:  
-    Log loss penalizes confident incorrect predictions very harshly, which can sometimes be overly sensitive to for example outliers
+###### **Accuracy Benefits**: 
 
-Accuracy 
-Benefits: 
-    1. Simple and Intuitive: 
+1. **Simple and Intuitive**: 
     Accuracy is easy to calculate and understand, making it a popular metric for quick evaluations.
 
-    2. Direct Measure of Performance: 
+2. **Direct Measure of Performance**: 
     It directly reflects the percentage of predictions that the model got right, which makes it straightforward to interpret.
 
-Downsides: 
-    1. Imbalanced Data:
+###### **Accuracy Downsides**: 
+
+1. **Imbalanced Data**:
     When one or more class labels are extremely common.
     Almost always the case. Think about churn prediction. Most customers don’t churn
 
-    2. Prediction Certainty: 
+2. **Prediction Certainty**: 
     Accuracy does not take prediction certainty into account. A model predicing correctly with 51% probability can get the same score as a model with 99% probability.
     Ranking outcomes is common – call the lead with the highest probability of buying first
 
@@ -281,11 +292,8 @@ Place the accuracy and log scores for these two models, and the model you made i
 :::
 
 ```{python}
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import StandardScaler, PolynomialFeatures
-from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import cross_validate
-import pandas as pd
+# | code-summary: Model Performance Comparison with Polynomial Features
+# | code-fold: true
 
 baseline_pipeline = Pipeline([
     ('scaler', StandardScaler()),
@@ -329,6 +337,9 @@ print(results_df)
 
 ```
 
+The Baseline Logistic Regression model performs slightly better, with a lower Negative Log Loss and marginally higher Accuracy compared to both the Full Quadratic Regression and Interaction-Only Quadratic models, which yield nearly identical results. 
+
+All models show low accuracy (~40%) and relatively high log loss, suggesting that the dataset may have limited predictive power or contain a significant amount of noise, making it difficult for the models to make precise predictions. The addition of polynomial features does not appear to provide any substantial improvement, indicating that simpler models might be more suitable for this data.
 
 ## 2.5 Boosting
 ::: {.callout-note icon=false appearance="simple"} 
@@ -336,11 +347,9 @@ print(results_df)
 Run a boosting classifier on the data. Estimate its, performance of the classifier, and make an importance plot. Explain what you see. 
 :::
 ```{python}
-import pandas as pd
-from sklearn.ensemble import GradientBoostingClassifier
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, log_loss
-import matplotlib.pyplot as plt
+# | code-summary: Gradient Boosting Classifier and Feature Importance
+# | code-fold: True
+# | label: fig-feature-importance-gbc
 
 pollution_df = pd.read_csv('pollution.csv')
 
@@ -364,7 +373,7 @@ print("Log Loss:", round(-logloss, 2))
 feature_importances = boosting_model.feature_importances_
 sorted_indices = feature_importances.argsort()
 
-plt.figure(figsize=(10, 6))
+plt.figure(figsize=(6, 6))
 plt.barh(X.columns[sorted_indices], feature_importances[sorted_indices], color='steelblue')
 plt.xlabel("Feature Importance")
 plt.ylabel("Features")
@@ -375,7 +384,9 @@ plt.show()
 
 ```
 
-The Gradient Boosting Classifier performs similarly to the baseline and quadratic logistic regression models, indicating that the dataset may have limited signal or non-linear structure for significant improvement. The relatively low accuracy and high log loss suggest the model struggles to make precise predictions, potentially due to noisy or overlapping data features. Therefore The Gradient Boosting Classifier captures non-linear relationships, but the overall performance remains low.
+As shown in the figure (see @fig-feature-importance-gbc), the Gradient Boosting Classifier performs similarly to the baseline and quadratic logistic regression models. This indicates that the dataset may have limited signal or a non-linear structure, limiting significant improvements.
+
+The relatively low accuracy and high log loss suggest the model struggles to make precise predictions, likely due to noisy or overlapping data features. Therefore, although the Gradient Boosting Classifier captures non-linear relationships, the overall performance remains low.
 
 The feature importance plot highlights which variables contribute most to the model's predictions. Features with higher importance are more influential in determining the target variable.
 
@@ -385,16 +396,14 @@ The feature importance plot highlights which variables contribute most to the mo
 Discuss other potential models for this data set. Do you find it likely that any of them would perform better than logistic regression?
 :::
 
-1. Decision Trees and Random Forests:
+1. **Decision Trees and Random Forests**:
 Decision Trees can capture non-linear relationships and feature interactions without assuming linearity, which is beneficial for pollution data that often exhibits such complexities. Random Forests, as an ensemble of decision trees, reduce the risk of overfitting and variance by aggregating multiple trees, providing more robust performance. Both models can handle class imbalance by adjusting class weights or using balanced sampling. However, Decision Trees may overfit, leading to poor generalization, while Random Forests, though more robust, can be computationally expensive and harder to interpret compared to logistic regression.
 
-2. Gradient Boosting Machines (GBM):
+2. **Gradient Boosting Machines (GBM)**:
 Gradient Boosting Machines (including implementations like XGBoost and LightGBM) build trees sequentially, where each tree attempts to correct the errors of the previous one. This makes them highly effective at capturing complex relationships and non-linear patterns in data. GBMs can manage class imbalance using class weights or specialized loss functions, improving their performance in skewed datasets. However, they require careful tuning of hyperparameters and are computationally intensive, making them less interpretable than logistic regression.
 
-3. K-Nearest Neighbors (KNN):
+3. **K-Nearest Neighbors (KNN)**:
 K-Nearest Neighbors (KNN) is a non-parametric method that captures complex decision boundaries by classifying a data point based on the majority class of its nearest neighbors. It works well for datasets with intricate relationships between features. KNN can handle class imbalance through weighted approaches, where closer neighbors have more influence. However, it is computationally expensive for large datasets and struggles with high-dimensional or noisy data, making it less efficient than other models like logistic regression in certain situations.
-
-
 
 
 
