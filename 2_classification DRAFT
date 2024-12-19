@@ -292,7 +292,12 @@ It's natural to check for "simple" non-linearity by running quadratic logistic r
 Place the accuracy and log scores for these two models, and the model you made in the previous exercise, in a nicely formatted table. Which model performs best? What is happening here?
 :::
 
-```{python}
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler, PolynomialFeatures
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import cross_validate
+import pandas as pd
+
 baseline_pipeline = Pipeline([
     ('scaler', StandardScaler()),
     ('logistic', LogisticRegression(penalty=None, max_iter=1000))  
@@ -316,22 +321,23 @@ baseline_cv_results = cross_validate(baseline_pipeline, X, y, cv=5, scoring=scor
 full_quadratic_cv_results = cross_validate(full_quadratic_pipeline, X, y, cv=5, scoring=scoring_metrics)
 interaction_only_cv_results = cross_validate(interaction_only_pipeline, X, y, cv=5, scoring=scoring_metrics)
 
-print("\nBaseline Pipeline CV Results:")
-print("Negative Log Loss (Mean):", round(-baseline_cv_results['test_neg_log_loss'].mean(), 2))
-print("Accuracy (Mean):", round(baseline_cv_results['test_accuracy'].mean(), 2))
+results = {
+    "Model": ["Baseline Logistic Regression", "Full Quadratic Regression", "Interaction-Only Quadratic"],
+    "Negative Log Loss (Mean)": [
+        round(-baseline_cv_results['test_neg_log_loss'].mean(), 2),
+        round(-full_quadratic_cv_results['test_neg_log_loss'].mean(), 2),
+        round(-interaction_only_cv_results['test_neg_log_loss'].mean(), 2)
+    ],
+    "Accuracy (Mean)": [
+        round(baseline_cv_results['test_accuracy'].mean(), 2),
+        round(full_quadratic_cv_results['test_accuracy'].mean(), 2),
+        round(interaction_only_cv_results['test_accuracy'].mean(), 2)
+    ]
+}
 
-print("\nFull Quadratic Pipeline CV Results:")
-print("Negative Log Loss (Mean):", round(-full_quadratic_cv_results['test_neg_log_loss'].mean(), 2))
-print("Accuracy (Mean):", round(full_quadratic_cv_results['test_accuracy'].mean(), 2))
+results_df = pd.DataFrame(results)
+print(results_df)
 
-print("\nInteraction-Only Pipeline CV Results:")
-print("Negative Log Loss (Mean):", round(-interaction_only_cv_results['test_neg_log_loss'].mean(), 2))
-print("Accuracy (Mean):", round(interaction_only_cv_results['test_accuracy'].mean(), 2))
-```
-
-The Baseline Pipeline performs best with a log loss of 1.28 and accuracy of 0.40, compared to the Full Quadratic and Interaction-Only models, which have slightly worse performance (log loss 1.3 and accuracy 0.39).
-
-The quadratic and interaction-only models introduce additional complexity by including polynomial and interaction terms, which may overfit the data or fail to generalize due to limited patterns in the dataset. The baseline logistic regression performs better likely because the relationships in the data are relatively simple and adding unnecessary complexity reduces performance.
 
 ## 2.5 Boosting
 ::: {.callout-note icon=false appearance="simple"} 
