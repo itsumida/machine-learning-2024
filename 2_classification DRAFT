@@ -122,12 +122,31 @@ plt.suptitle("Pairplot of Features by Air Quality", y=1.02)
 plt.show()
 ```
 
-```{python}
-# | code-summary: Temperature(°C) vs. Air Quality Levels
-# | code-fold: true
-sns.pairplot(pollution_df[["Temperature", "Air Quality"]], hue="Air Quality")
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+pollution_df = pd.read_csv('pollution.csv')
+
+pollution_df = pollution_df.dropna()
+
+print("Columns in dataset:", pollution_df.columns)
+
+available_features = [
+    col for col in ["Temperature", "Humidity", "PM2.5 Concentration", "PM10 Concentration", "Air Quality"]
+    if col in pollution_df.columns
+]
+print("Selected features for pairplot:", available_features)
+
+sns.pairplot(
+    pollution_df[available_features],
+    hue="Air Quality",
+    diag_kind="kde",
+    corner=True,
+    palette="coolwarm"
+)
+plt.suptitle("Pairplot of Features by Air Quality", y=1.02)
 plt.show()
-```
 
 Higher temperatures are correlated with worse air quality, particularly above 30°C. There is significant overlap between 20°C to 30°C, suggesting temperature alone may not be a strong predictor.
 
