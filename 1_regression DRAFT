@@ -42,6 +42,8 @@ from sklearn.pipeline import Pipeline
 from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor, StackingRegressor
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import GridSearchCV 
+import warnings 
+warnings.filterwarnings('ignore')
 ```
 
 ```{python}
@@ -169,7 +171,6 @@ The weak correlation between fuel consumption (mpg) and CO2 emissions (g/km) cou
 ```
 
 ## 3.3 Bar graphs
-
 ::: {.callout-note icon=false appearance="simple"}
 Make some informative plots (e.g., bar graphs) relating the target variable to the relevant non-numeric features of `CO2`. Make the plots readable, and be sure to comment each plot.
 :::
