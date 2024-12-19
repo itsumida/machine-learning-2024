@@ -122,6 +122,7 @@ plt.suptitle("Pairplot of Features by Air Quality", y=1.02)
 plt.show()
 ```
 
+```{python}
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -148,6 +149,7 @@ sns.pairplot(
 plt.suptitle("Pairplot of Features by Air Quality", y=1.02)
 plt.show()
 
+```
 Higher temperatures are correlated with worse air quality, particularly above 30°C. There is significant overlap between 20°C to 30°C, suggesting temperature alone may not be a strong predictor.
 
 ```{python}
