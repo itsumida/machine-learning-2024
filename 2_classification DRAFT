@@ -152,21 +152,7 @@ plt.show()
 ```
 Higher temperatures are correlated with worse air quality, particularly above 30°C. There is significant overlap between 20°C to 30°C, suggesting temperature alone may not be a strong predictor.
 
-```{python}
-# | code-summary: Proximity to Industrial Areas (km) vs. Air Quality Levels 
-# | code-fold: true
-sns.pairplot(pollution_df[["Proximity_to_Industrial_Areas", "Air Quality"]], hue="Air Quality")
-plt.show()
-```
-
 Poorer air quality is associated with locations closer to industrial areas. Greater distance from industrial zones correlates with better air quality.
-
-```{python}
-# | code-summary: Population Density (people/km²) vs. Air Quality Levels 
-# | code-fold: true
-sns.pairplot(pollution_df[["Population_Density", "Air Quality"]], hue="Air Quality")
-plt.show()
-```
 
 Higher population densities are linked to slightly worse air quality. However, air quality levels overlap significantly within the 280-320 people/km² range.
 
